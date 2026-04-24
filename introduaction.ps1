@@ -124,23 +124,42 @@ function Uninstall-App ($TargetApp) {
 }
 
 function Start-XpMusic {
+    # We need to load this for the modern Media Player to work
+    Add-Type -AssemblyName PresentationCore
+
     try {
-        $UsbDrive = (Get-PSDrive -PSProvider FileSystem | Where-Object { Test-Path "$($_.Root)xpmusic.wav" } | Select-Object -First 1).Root
-        if ($UsbDrive) {
-            $MusicPath = Join-Path $UsbDrive "xpmusic.wav"
-        } else {
-            $MusicPath = Join-Path $env:TEMP "xpmusic.wav"
-            if (-not (Test-Path $MusicPath)) {
-                $MusicUrl = "https://github.com/DanielNov2014/Phython_Games_ForSchool/raw/refs/heads/main/xpmusic.wav"
-                Invoke-WebRequest -Uri $MusicUrl -OutFile $MusicPath -UseBasicParsing -TimeoutSec 15 -ErrorAction SilentlyContinue
-            }
+        $MusicPath = Join-Path $env:TEMP "xpmusic.wav"
+        
+        # Download logic (same as before)
+        if (-not (Test-Path $MusicPath)) {
+            $MusicUrl = "https://github.com/DanielNov2014/Phython_Games_ForSchool/raw/refs/heads/main/xpmusic.wav"
+            Invoke-WebRequest -Uri $MusicUrl -OutFile $MusicPath -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
         }
+        
         if (Test-Path $MusicPath) {
-            if ($global:WMP) { $global:WMP.controls.stop() } 
-            $global:SoundPlayer = New-Object System.Media.SoundPlayer($MusicPath)
-            $global:SoundPlayer.PlayLooping()
+            # Create a modern Media Player object
+            $global:MediaPlayer = New-Object System.Windows.Media.MediaPlayer
+            $global:MediaPlayer.Open((New-Object System.Uri($MusicPath)))
+            
+            # Wait a split second for the file to load, then play
+            Start-Sleep -Milliseconds 500
+            $global:MediaPlayer.Volume = 1.0  # Max Volume
+            $global:MediaPlayer.Play()
+            
+            # This bit handles the looping
+            $global:Timer = New-Object System.Windows.Forms.Timer
+            $global:Timer.Interval = 1000
+            $global:Timer.Add_Tick({
+                if ($global:MediaPlayer.Position -ge $global:MediaPlayer.NaturalDuration.TimeSpan) {
+                    $global:MediaPlayer.Position = New-Object System.TimeSpan(0,0,0,0,0)
+                    $global:MediaPlayer.Play()
+                }
+            })
+            $global:Timer.Start()
         }
-    } catch {}
+    } catch {
+        # Silent fail
+    }
 }
 
 # --- 2. SETUP FULL-SCREEN FORM ---

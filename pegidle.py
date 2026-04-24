@@ -7,8 +7,18 @@ import struct
 import json
 import time
 
-# --- Configuration ---
-WIDTH, HEIGHT = 800, 800
+# --- Initialize Pygame & Mixer First (Needed for screen info) ---
+pygame.init()
+pygame.mixer.init()
+
+# --- Dynamic Fullscreen Configuration ---
+infoObject = pygame.display.Info()
+WIDTH, HEIGHT = infoObject.current_w, infoObject.current_h
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+pygame.display.set_caption("Peggle Idle/Upgrades")
+clock = pygame.time.Clock()
+
 FPS = 60
 SAVE_FILE = "peggle_save_v18.json" 
 
@@ -32,13 +42,7 @@ MAROON = (128, 0, 0)
 DARK_BLUE = (30, 40, 80)
 MAGENTA = (255, 0, 255) 
 
-# --- Initialize Pygame & Mixer ---
-pygame.init()
-pygame.mixer.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Peggle Idle/Upgrades")
-clock = pygame.time.Clock()
-
+# --- Dynamic Surfaces ---
 dim_overlay = pygame.Surface((WIDTH, HEIGHT))
 dim_overlay.set_alpha(200)
 dim_overlay.fill(BLACK)
@@ -273,7 +277,7 @@ def layout_classic():
     coords = []
     for row in range(14): 
         offset = 20 if row % 2 != 0 else 0
-        for col in range(28): 
+        for col in range(int(WIDTH/40)): 
             x = (col * 40) + offset + 40
             if 24 < x < WIDTH - 24: coords.append((x, 150 + row * 35))
     return coords
@@ -282,56 +286,70 @@ def layout_pillars():
     coords = []
     global bumpers
     bumpers = []
-    columns_x = [200, 400, 600, 800, 1000] 
+    
+    num_pillars = max(3, WIDTH // 200)
+    spacing = WIDTH // (num_pillars + 1)
+    columns_x = [spacing * i for i in range(1, num_pillars + 1)]
+
     for cx in columns_x:
         for row in range(15):
             offset = 15 if row % 2 != 0 else -15
             coords.append((cx + offset, 150 + row * 32))
             coords.append((cx + offset + 35, 150 + row * 32))
             
-    bumpers.append({'x': 300, 'y': 350, 'radius': 25})
-    bumpers.append({'x': 500, 'y': 250, 'radius': 25})
-    bumpers.append({'x': 700, 'y': 350, 'radius': 25})
-    bumpers.append({'x': 900, 'y': 250, 'radius': 25})
+    bumpers.append({'x': columns_x[1] - spacing//2, 'y': 350, 'radius': 25})
+    bumpers.append({'x': columns_x[-2] + spacing//2, 'y': 250, 'radius': 25})
     return coords
 
 def layout_floating_islands():
     coords = []
     global bumpers
     bumpers = []
-    islands = [(250, 200), (950, 250), (600, 400), (450, 600), (750, 600), (250, 550), (950, 550)]
+    islands = [
+        (WIDTH*0.2, HEIGHT*0.3), (WIDTH*0.8, HEIGHT*0.3), 
+        (WIDTH*0.5, HEIGHT*0.5), 
+        (WIDTH*0.35, HEIGHT*0.7), (WIDTH*0.65, HEIGHT*0.7)
+    ]
     for ix, iy in islands:
         for row in range(3):
             for col in range(6): coords.append((ix - 75 + col*30, iy - 30 + row*30))
                 
-    bumpers.append({'x': 600, 'y': 250, 'radius': 25})
-    bumpers.append({'x': 400, 'y': 400, 'radius': 25})
-    bumpers.append({'x': 800, 'y': 400, 'radius': 25})
+    bumpers.append({'x': WIDTH*0.5, 'y': HEIGHT*0.3, 'radius': 25})
+    bumpers.append({'x': WIDTH*0.3, 'y': HEIGHT*0.5, 'radius': 25})
+    bumpers.append({'x': WIDTH*0.7, 'y': HEIGHT*0.5, 'radius': 25})
     return coords
 
 def layout_clusters():
     coords = []
     global bumpers
     bumpers = []
-    centers = [(300, 250), (600, 250), (900, 250), (450, 500), (750, 500)]
+    centers = [
+        (WIDTH*0.25, HEIGHT*0.3), (WIDTH*0.5, HEIGHT*0.3), (WIDTH*0.75, HEIGHT*0.3), 
+        (WIDTH*0.35, HEIGHT*0.6), (WIDTH*0.65, HEIGHT*0.6)
+    ]
     for cx, cy in centers:
         offsets = [(0,0), (-30,0), (30,0), (0,-30), (0,30), (-15,-15), (15,-15), (-15,15), (15,15)]
         for ox, oy in offsets: coords.append((cx + ox, cy + oy))
             
-    bumpers.append({'x': 450, 'y': 350, 'radius': 30})
-    bumpers.append({'x': 750, 'y': 350, 'radius': 30})
-    bumpers.append({'x': 600, 'y': 600, 'radius': 30})
+    bumpers.append({'x': WIDTH*0.35, 'y': HEIGHT*0.4, 'radius': 30})
+    bumpers.append({'x': WIDTH*0.65, 'y': HEIGHT*0.4, 'radius': 30})
+    bumpers.append({'x': WIDTH*0.5, 'y': HEIGHT*0.7, 'radius': 30})
     return coords
 
 def layout_boxes():
     coords = []
     global bumpers
     bumpers = []
-    box_centers = [
-        (240, 250), (480, 250), (720, 250), (960, 250),
-        (240, 450), (480, 450), (720, 450), (960, 450),
-        (360, 650), (600, 650), (840, 650)
-    ]
+    
+    num_boxes = WIDTH // 200
+    spacing = WIDTH // (num_boxes + 1)
+    box_centers = []
+    
+    for r in [0.3, 0.55, 0.8]:
+        for i in range(1, num_boxes + 1):
+            if r == 0.8 and (i == 1 or i == num_boxes): continue 
+            box_centers.append((spacing * i, HEIGHT * r))
+            
     for cx, cy in box_centers:
         for bx in [-35, 0, 35]:
             for by in [-35, 0, 35]:
@@ -340,10 +358,8 @@ def layout_boxes():
                 if 24 < x < WIDTH - 24 and y < HEIGHT - 50:
                     coords.append((x, y))
                     
-    bumpers.append({'x': 120, 'y': 350, 'radius': 25})
-    bumpers.append({'x': 1080, 'y': 350, 'radius': 25})
-    bumpers.append({'x': 120, 'y': 650, 'radius': 25})
-    bumpers.append({'x': 1080, 'y': 650, 'radius': 25})
+    bumpers.append({'x': spacing, 'y': HEIGHT*0.4, 'radius': 25})
+    bumpers.append({'x': spacing * num_boxes, 'y': HEIGHT*0.4, 'radius': 25})
     return coords
 
 def create_random_board():
@@ -609,26 +625,30 @@ def roll_crate(crate_name):
 # --- Draw Menus ---
 def draw_main_menu():
     screen.fill(BLACK)
-    pygame.draw.rect(screen, BROWN, (100, 100, WIDTH - 200, HEIGHT - 200), border_radius=10)
-    pygame.draw.rect(screen, GOLD, (100, 100, WIDTH - 200, HEIGHT - 200), 3, border_radius=10)
+    
+    menu_w, menu_h = 1000, 600
+    m_x, m_y = WIDTH//2 - menu_w//2, HEIGHT//2 - menu_h//2
+    
+    pygame.draw.rect(screen, BROWN, (m_x, m_y, menu_w, menu_h), border_radius=10)
+    pygame.draw.rect(screen, GOLD, (m_x, m_y, menu_w, menu_h), 3, border_radius=10)
     
     stats = ball_stats[equipped_ball]
     
-    pygame.draw.rect(screen, TAN, (130, 130, WIDTH - 260, 160), border_radius=5)
-    screen.blit(font_large.render(f"[{equipped_ball}] Lvl {stats['level']}", True, BLACK), (150, 140))
-    screen.blit(font_med.render(f"GOLD: x{stats['gold_mult']:.1f}", True, BLACK), (150, 180))
-    screen.blit(font_med.render(f"BOUNCE BONUS: +{stats['bounce_bonus']:.2f}", True, BLACK), (150, 210))
-    screen.blit(font_med.render(f"MANUAL AMMO: {stats['max_balls']}", True, BLACK), (150, 240))
+    pygame.draw.rect(screen, TAN, (m_x + 30, m_y + 30, menu_w - 60, 160), border_radius=5)
+    screen.blit(font_large.render(f"[{equipped_ball}] Lvl {stats['level']}", True, BLACK), (m_x + 50, m_y + 40))
+    screen.blit(font_med.render(f"GOLD: x{stats['gold_mult']:.1f}", True, BLACK), (m_x + 50, m_y + 80))
+    screen.blit(font_med.render(f"BOUNCE BONUS: +{stats['bounce_bonus']:.2f}", True, BLACK), (m_x + 50, m_y + 110))
+    screen.blit(font_med.render(f"MANUAL AMMO: {stats['max_balls']}", True, BLACK), (m_x + 50, m_y + 140))
     
-    btn_power = pygame.Rect(WIDTH//2 + 80, 140, 250, 40)
+    btn_power = pygame.Rect(m_x + 400, m_y + 40, 250, 40)
     pygame.draw.rect(screen, GREEN if cash >= stats['upg_cost_power'] else GRAY, btn_power, border_radius=5)
     screen.blit(font_med.render(f"Upg Power (${stats['upg_cost_power']})", True, BLACK), (btn_power.x + 10, btn_power.y + 10))
 
-    btn_cap = pygame.Rect(WIDTH//2 + 80, 190, 250, 40)
+    btn_cap = pygame.Rect(m_x + 400, m_y + 90, 250, 40)
     pygame.draw.rect(screen, GREEN if cash >= stats['upg_cost_balls'] else GRAY, btn_cap, border_radius=5)
     screen.blit(font_med.render(f"Upg Ammo (${stats['upg_cost_balls']})", True, BLACK), (btn_cap.x + 10, btn_cap.y + 10))
 
-    btn_auto = pygame.Rect(WIDTH//2 + 80, 240, 250, 40)
+    btn_auto = pygame.Rect(m_x + 400, m_y + 140, 250, 40)
     if stats['auto_drop_lvl'] >= 4:
         pygame.draw.rect(screen, GOLD, btn_auto, border_radius=5)
         screen.blit(font_med.render("Auto: MAXED", True, BLACK), (btn_auto.x + 10, btn_auto.y + 10))
@@ -646,12 +666,12 @@ def draw_main_menu():
     bot_cost = bot_lv + 1
     
     if not stats.get('special_unlocked'):
-        btn_special = pygame.Rect(140, 255, 230, 30)
+        btn_special = pygame.Rect(m_x + 680, m_y + 40, 230, 30)
         pygame.draw.rect(screen, PURPLE if cash >= 20000 else GRAY, btn_special, border_radius=5)
         screen.blit(font_small.render("Unlock Special ($20k)", True, WHITE), (btn_special.x + 25, btn_special.y + 8))
     else:
-        screen.blit(font_small.render(f"Top Revives: {top_lv}/5", True, DARK_BLUE), (140, 260))
-        btn_top_rev = pygame.Rect(280, 255, 60, 25)
+        screen.blit(font_small.render(f"Top Revives: {top_lv}/5", True, DARK_BLUE), (m_x + 680, m_y + 45))
+        btn_top_rev = pygame.Rect(m_x + 820, m_y + 40, 60, 25)
         if top_lv >= 5:
             pygame.draw.rect(screen, GOLD, btn_top_rev, border_radius=5)
             screen.blit(font_small.render("MAX", True, BLACK), (btn_top_rev.x + 12, btn_top_rev.y + 5))
@@ -659,8 +679,8 @@ def draw_main_menu():
             pygame.draw.rect(screen, CYAN if stat_points >= top_cost else GRAY, btn_top_rev, border_radius=5)
             screen.blit(font_small.render(f"{top_cost} SP", True, BLACK), (btn_top_rev.x + 10, btn_top_rev.y + 5))
 
-        screen.blit(font_small.render(f"Bounce Rev: {bot_lv}/5", True, DARK_BLUE), (140, 285))
-        btn_bot_rev = pygame.Rect(280, 280, 60, 25)
+        screen.blit(font_small.render(f"Bounce Rev: {bot_lv}/5", True, DARK_BLUE), (m_x + 680, m_y + 70))
+        btn_bot_rev = pygame.Rect(m_x + 820, m_y + 65, 60, 25)
         if bot_lv >= 5:
             pygame.draw.rect(screen, GOLD, btn_bot_rev, border_radius=5)
             screen.blit(font_small.render("MAX", True, BLACK), (btn_bot_rev.x + 12, btn_bot_rev.y + 5))
@@ -670,8 +690,8 @@ def draw_main_menu():
     
     card_rects = {} 
     visible_balls = {k: v for k, v in BALL_TYPES.items() if not v.get('hidden')}
-    start_x = (WIDTH - (5 * 145)) // 2 + 10 
-    start_y = 320
+    start_x = m_x + (menu_w - (5 * 145)) // 2 + 10 
+    start_y = m_y + 220
     
     for i, (b_name, b_data) in enumerate(visible_balls.items()):
         row, col = i // 5, i % 5
@@ -695,19 +715,19 @@ def draw_main_menu():
         else:
             screen.blit(font_small.render(f"${b_data['cost']}", True, RED), (card.x + 15, card.y + 100))
         
-    btn_view_tree = pygame.Rect(130, HEIGHT - 160, 250, 40)
+    btn_view_tree = pygame.Rect(m_x + 30, m_y + menu_h - 60, 250, 40)
     pygame.draw.rect(screen, PURPLE, btn_view_tree, border_radius=5)
     screen.blit(font_med.render("View Prestige Tree", True, WHITE), (btn_view_tree.x + 15, btn_view_tree.y + 10))
 
-    btn_prestige_act = pygame.Rect(400, HEIGHT - 160, 280, 40)
+    btn_prestige_act = pygame.Rect(m_x + 300, m_y + menu_h - 60, 280, 40)
     pygame.draw.rect(screen, BRONZE, btn_prestige_act, border_radius=5)
     screen.blit(font_med.render("PRESTIGE & RESTART", True, BLACK), (btn_prestige_act.x + 15, btn_prestige_act.y + 10))
     
-    btn_abilities = pygame.Rect(700, HEIGHT - 160, 180, 40)
+    btn_abilities = pygame.Rect(m_x + 600, m_y + menu_h - 60, 180, 40)
     pygame.draw.rect(screen, LIGHT_BLUE, btn_abilities, border_radius=5)
     screen.blit(font_med.render("Abilities", True, BLACK), (btn_abilities.x + 35, btn_abilities.y + 10))
 
-    close_rect = pygame.Rect(WIDTH - 210, HEIGHT - 160, 80, 40)
+    close_rect = pygame.Rect(m_x + menu_w - 110, m_y + menu_h - 60, 80, 40)
     pygame.draw.rect(screen, RED, close_rect, border_radius=5)
     screen.blit(font_med.render("Back", True, WHITE), (close_rect.x + 12, close_rect.y + 10))
     
@@ -715,14 +735,18 @@ def draw_main_menu():
 
 def draw_abilities_menu():
     screen.fill(BLACK)
-    pygame.draw.rect(screen, DARK_GRAY, (150, 30, WIDTH - 300, HEIGHT - 60), border_radius=10)
-    pygame.draw.rect(screen, LIGHT_BLUE, (150, 30, WIDTH - 300, HEIGHT - 60), 3, border_radius=10)
     
-    screen.blit(font_large.render("--- ACTIVE ABILITIES ---", True, LIGHT_BLUE), (WIDTH//2 - 200, 50))
-    screen.blit(font_med.render(f"Equipped: {len(equipped_abilities)} / 5", True, WHITE), (WIDTH//2 - 90, 90))
+    menu_w, menu_h = 900, 700
+    m_x, m_y = WIDTH//2 - menu_w//2, HEIGHT//2 - menu_h//2
+    
+    pygame.draw.rect(screen, DARK_GRAY, (m_x, m_y, menu_w, menu_h), border_radius=10)
+    pygame.draw.rect(screen, LIGHT_BLUE, (m_x, m_y, menu_w, menu_h), 3, border_radius=10)
+    
+    screen.blit(font_large.render("--- ACTIVE ABILITIES ---", True, LIGHT_BLUE), (m_x + menu_w//2 - 200, m_y + 20))
+    screen.blit(font_med.render(f"Equipped: {len(equipped_abilities)} / 5", True, WHITE), (m_x + menu_w//2 - 90, m_y + 60))
     
     a_rects = {}
-    start_x, start_y = 180, 130
+    start_x, start_y = m_x + 30, m_y + 100
     
     for i, (a_name, a_data) in enumerate(ABILITIES.items()):
         col = i % 2
@@ -748,15 +772,15 @@ def draw_abilities_menu():
         screen.blit(font_tiny.render(" ".join(desc_words[:5]), True, GRAY), (card.x + 175, card.y + 20))
         screen.blit(font_tiny.render(" ".join(desc_words[5:]), True, GRAY), (card.x + 175, card.y + 40))
 
-    btn_crates = pygame.Rect(180, HEIGHT - 90, 220, 40)
+    btn_crates = pygame.Rect(m_x + 30, m_y + menu_h - 60, 220, 40)
     pygame.draw.rect(screen, GOLD, btn_crates, border_radius=5)
     screen.blit(font_med.render("Buy Crates", True, BLACK), (btn_crates.x + 40, btn_crates.y + 10))
 
-    btn_unequip = pygame.Rect(WIDTH//2 - 100, HEIGHT - 90, 200, 40)
+    btn_unequip = pygame.Rect(m_x + menu_w//2 - 100, m_y + menu_h - 60, 200, 40)
     pygame.draw.rect(screen, RED, btn_unequip, border_radius=5)
     screen.blit(font_med.render("Unequip All", True, WHITE), (btn_unequip.x + 35, btn_unequip.y + 10))
 
-    btn_close = pygame.Rect(WIDTH - 280, 50, 100, 40)
+    btn_close = pygame.Rect(m_x + menu_w - 130, m_y + 20, 100, 40)
     pygame.draw.rect(screen, RED, btn_close, border_radius=5)
     screen.blit(font_med.render("Back", True, WHITE), (btn_close.x + 20, btn_close.y + 10))
     
@@ -764,19 +788,23 @@ def draw_abilities_menu():
 
 def draw_crates_menu():
     screen.fill(BLACK)
-    pygame.draw.rect(screen, DARK_BLUE, (100, 50, WIDTH - 200, HEIGHT - 100), border_radius=10)
-    pygame.draw.rect(screen, GOLD, (100, 50, WIDTH - 200, HEIGHT - 100), 3, border_radius=10)
     
-    screen.blit(font_huge.render("ABILITY CRATES", True, GOLD), (WIDTH//2 - 250, 80))
-    screen.blit(font_med.render(f"Current Cash: ${cash}", True, WHITE), (WIDTH//2 - 120, 150))
+    menu_w, menu_h = 1000, 700
+    m_x, m_y = WIDTH//2 - menu_w//2, HEIGHT//2 - menu_h//2
+    
+    pygame.draw.rect(screen, DARK_BLUE, (m_x, m_y, menu_w, menu_h), border_radius=10)
+    pygame.draw.rect(screen, GOLD, (m_x, m_y, menu_w, menu_h), 3, border_radius=10)
+    
+    screen.blit(font_huge.render("ABILITY CRATES", True, GOLD), (m_x + menu_w//2 - 250, m_y + 30))
+    screen.blit(font_med.render(f"Current Cash: ${cash}", True, WHITE), (m_x + menu_w//2 - 120, m_y + 100))
     
     c_rects = {}
     box_w = 260
-    spacing = (WIDTH - 200 - (3 * box_w)) // 4
-    start_x = 100 + spacing
+    spacing = (menu_w - (3 * box_w)) // 4
+    start_x = m_x + spacing
     
     for i, (c_name, c_data) in enumerate(CRATES.items()):
-        card = pygame.Rect(start_x + i*(box_w + spacing), 220, box_w, 350)
+        card = pygame.Rect(start_x + i*(box_w + spacing), m_y + 170, box_w, 350)
         c_rects[c_name] = card
         
         pygame.draw.rect(screen, BLACK, card, border_radius=10)
@@ -800,7 +828,7 @@ def draw_crates_menu():
         pygame.draw.rect(screen, GREEN if cash >= c_data['cost'] else GRAY, buy_rect, border_radius=5)
         screen.blit(font_med.render("BUY CRATE", True, BLACK), (buy_rect.x + 30, buy_rect.y + 10))
 
-    btn_close = pygame.Rect(WIDTH//2 - 75, HEIGHT - 100, 150, 40)
+    btn_close = pygame.Rect(m_x + menu_w//2 - 75, m_y + menu_h - 70, 150, 40)
     pygame.draw.rect(screen, RED, btn_close, border_radius=5)
     screen.blit(font_med.render("Back", True, WHITE), (btn_close.x + 40, btn_close.y + 10))
     
@@ -871,7 +899,7 @@ while running:
     active_pegs = [p for p in pegs if p['active']]
     
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             save_game()
             running = False
             

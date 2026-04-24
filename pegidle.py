@@ -8,7 +8,7 @@ import json
 import time
 
 # --- Configuration ---
-WIDTH, HEIGHT = 1200, 800 
+WIDTH, HEIGHT = 800, 800
 FPS = 60
 SAVE_FILE = "peggle_save_v18.json" 
 

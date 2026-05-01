@@ -2,9 +2,6 @@ import pygame, math, random, os, wave, struct, json, time, urllib.request, threa
 
 pygame.init(); pygame.mixer.init()
 
-if not getattr(pygame, "IS_CE", False):
-    print("\n" + "="*60 + "\n❌ ERROR: Standard Pygame detected! You MUST use Pygame-CE.\n" + "="*60 + "\n"); pygame.quit(); sys.exit()
-
 infoObject = pygame.display.Info()
 WIDTH, HEIGHT = infoObject.current_w, infoObject.current_h
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
@@ -52,7 +49,7 @@ BALL_TYPES = {
     "Wood":    {"color": BROWN, "base_grav": 0.30, "base_bounce": 0.65, "cost": 1000000, "desc": "Passively grows money mid-air"},
     "Shrapnel": {"color": GRAY, "base_grav": 0.30, "base_bounce": 0.60, "cost": 0, "desc": "", "hidden": True} 
 }
-ABILITIES = {"Fire Cursor": {"desc": "5s Buff: Hold click to burn pegs", "color": ORANGE, "rarity": "Common"}, "Vacuum Cursor": {"desc": "5s Buff: Hold click to juggle balls!", "color": LIGHT_BLUE, "rarity": "Common"}, "Thunder Cloud": {"desc": "Click to blast 5 random pegs!", "color": DARK_GRAY, "rarity": "Rare"}, "Bounce Revive": {"desc": "Instantly gives active balls an extra bounce!", "color": GREEN, "rarity": "Rare"}, "Midas Touch": {"desc": "Click to turn an area of pegs into Gold!", "color": GOLD, "rarity": "Epic"}, "Starfall": {"desc": "Instantly drops 10 bouncy balls!", "color": LIGHT_BLUE, "rarity": "Epic"}, "Drone": {"desc": "Collects 10 balls. Click to drop them!", "color": WHITE, "rarity": "Epic"}, "Revive Wave": {"desc": "Teleports active balls back to the top!", "color": CYAN, "rarity": "Legendary"}, "Black Hole": {"desc": "Sucks pegs for 6s. Pegs eaten pay 2x!", "color": PURPLE, "rarity": "Legendary"}, "Orbital Strike": {"desc": "Blasts a vertical column with a laser!", "color": RED, "rarity": "Legendary"}}
+ABILITIES = {"Fire Cursor": {"desc": "5s Buff: Hold click to burn pegs", "color": ORANGE, "rarity": "Common"}, "Vacuum Cursor": {"desc": "5s Buff: Hold click to juggle balls!", "color": LIGHT_BLUE, "rarity": "Common"}, "Thunder Cloud": {"desc": "Click to blast 5 random pegs!", "color": DARK_GRAY, "rarity": "Rare"}, "Bounce Revive": {"desc": "Instantly gives active balls an extra bounce!", "color": GREEN, "rarity": "Rare"}, "Spawner": {"desc": "Click to spawn 10 of equipped ball!", "color": GREEN, "rarity": "Rare"}, "Midas Touch": {"desc": "Click to turn an area of pegs into Gold!", "color": GOLD, "rarity": "Epic"}, "Starfall": {"desc": "Instantly drops 10 bouncy balls!", "color": LIGHT_BLUE, "rarity": "Epic"}, "Drone": {"desc": "Place a drone to catch balls. Click it to drop them!", "color": WHITE, "rarity": "Epic"}, "Revive Wave": {"desc": "Teleports active balls back to the top!", "color": CYAN, "rarity": "Legendary"}, "Black Hole": {"desc": "Sucks pegs for 6s. Pegs eaten pay 2x!", "color": PURPLE, "rarity": "Legendary"}, "Orbital Strike": {"desc": "Blasts a vertical column with a laser!", "color": RED, "rarity": "Legendary"}}
 RARITY_COLORS = {'Common': GRAY, 'Rare': LIGHT_BLUE, 'Epic': PURPLE, 'Legendary': GOLD}
 CRATES = {"Basic Crate": {"cost": 2000, "rolls": 3, "odds": {"Legendary": 0.02, "Epic": 0.08, "Rare": 0.30, "Common": 0.60}, "color": BROWN}, "Advanced Crate": {"cost": 10000, "rolls": 6, "odds": {"Legendary": 0.08, "Epic": 0.20, "Rare": 0.42, "Common": 0.30}, "color": DARK_GRAY}, "Premium Crate": {"cost": 40000, "rolls": 10, "odds": {"Legendary": 0.25, "Epic": 0.40, "Rare": 0.25, "Common": 0.10}, "color": GOLD}}
 PRESTIGE_DEFS = {'starter_cash': {'name': 'Starter Money', 'desc': '+$1000 on Prestige', 'base_cost': 5, 'max_lvl': 10}, 'extra_rainbow': {'name': 'More Rainbows', 'desc': '+1 Rainbow Peg', 'base_cost': 15, 'max_lvl': 5}, 'bomb_chance': {'name': 'Bomb Chance', 'desc': '+2% Bomb spawn rate', 'base_cost': 10, 'max_lvl': 10}, 'extra_prestige': {'name': 'Prestige Pegs', 'desc': '+1 Brown Peg', 'base_cost': 12, 'max_lvl': 5}, 'gold_chance': {'name': 'Gold Rush', 'desc': '+5% Gold Peg rate', 'base_cost': 10, 'max_lvl': 10}, 'multishot': {'name': 'Multishot', 'desc': '+1 Ball per manual shot', 'base_cost': 25, 'max_lvl': 5}, 'stat_pegs': {'name': 'Stat Pegs', 'desc': '+10% Stat Peg rate', 'base_cost': 15, 'max_lvl': 5}}
@@ -62,8 +59,8 @@ equipped_ball = "Regular"; ability_inventory = {k: 0 for k in ABILITIES.keys()};
 custom_maps_unlocked = False; approved_maps_list = []; pending_maps_list = []
 
 editor_pegs = []; editor_bumpers = []; editor_tool = 'green'; editor_is_unfair = False; editor_snap = True
-is_playtest = False; backup_pegs = []; backup_bumpers = []; backup_cash = 0
-is_uploading = False; upload_message = ""
+is_playtest = False; playtest_return_state = "MAP_EDITOR"; backup_pegs = []; backup_bumpers = []; backup_cash = 0
+is_uploading = False; upload_message = ""; map_input_name = ""; browse_map_page = 0
 
 input_username = ""; input_password = ""; active_input = "username"
 admin_input_user = ""; admin_input_amount = ""; admin_active_input = "user"; admin_msg = ""
@@ -139,6 +136,7 @@ def fetch_maps_from_cloud():
     if res.get("success"):
         approved_maps_list = res.get("approved", []); pending_maps_list = res.get("pending", [])
     if state == "ADMIN_PANEL_LOADING": state = "ADMIN_PANEL"
+    elif state == "BROWSE_MAPS_LOADING": state = "BROWSE_MAPS"
 
 def check_for_gifts_thread():
     global cash, gift_popup_msg
@@ -239,7 +237,7 @@ def randomize_editor_pegs():
 def load_custom_map(map_data):
     global pegs, bumpers
     pegs = []; bumpers = []
-    max_y = HEIGHT - 175 # DEADZONE FILTER
+    max_y = HEIGHT - 175
     for p in map_data.get('pegs', []):
         if 15 < p['x'] < WIDTH - 15 and 80 < p['y'] < max_y:
             p_type = 'green' if p['type'] == 'random' else p['type']
@@ -347,8 +345,12 @@ def spawn_ball(ball_type, x, y, vx, vy, is_manual=False, inherited_mult=None):
     revive_stack = []
     if random.random() < 0.40:
         revive_stack.extend(['top'] * stats.get('base_top_revives', 0)); revive_stack.extend(['bounce'] * stats.get('base_bounce_revives', 0)); random.shuffle(revive_stack)
+    
+    if ball_type == 'Maroon': revive_stack.append('bounce')
+    elif ball_type == 'Hoops': revive_stack.append('top')
+    
     b_dict = {'type': ball_type, 'is_manual': is_manual, 'x': x, 'y': y, 'vx': vx, 'vy': vy, 'color': b['color'], 'grav': b['base_grav'], 'bounce': min(0.98, b['base_bounce'] + stats['bounce_bonus']), 'radius': 4 if ball_type == "Shrapnel" else BALL_RADIUS, 'gold_mult': inherited_mult if inherited_mult else stats['gold_mult'], 'revive_stack': revive_stack}
-    if ball_type == 'Magic': b_dict.update({'lightning_strikes': 2, 'lightning_timer': FPS * 1.5, 'vy': 0.0})
+    if ball_type == 'Magic': b_dict.update({'lightning_timer': FPS * 1.5, 'vy': 0.0})
     elif ball_type == 'Taco': b_dict.update({'max_hits': random.randint(2, 4), 'hits_taken': 0, 'radius': 14})
     balls.append(b_dict)
 
@@ -390,12 +392,12 @@ def roll_crate(crate_name):
     return results
 
 def upload_map_thread(map_data):
-    global is_uploading, upload_message, state, editor_pegs, editor_bumpers
+    global is_uploading, upload_message, state, editor_pegs, editor_bumpers, map_input_name
     res = send_to_gas({"action": "upload_map", "username": current_user, "password": current_pass, "mapData": map_data})
     upload_message = "Upload Successful!" if res.get("success") else "Upload Failed: " + res.get("message", "")
     time.sleep(1.5)
     if res.get("success"):
-        editor_pegs = []; editor_bumpers = []; state = "MENU"
+        editor_pegs = []; editor_bumpers = []; map_input_name = ""; state = "MENU"
     is_uploading = False; upload_message = ""
 
 def draw_main_menu():
@@ -451,6 +453,11 @@ while running:
     mx, my = pygame.mouse.get_pos()
     active_pegs = [p for p in pegs if p['active']]
     
+    # --- FAILSAFE ---
+    # If the board is accidentally completely empty during normal play, spawn a new one!
+    if not is_playtest and len(pegs) == 0 and board_clear_timer == 0:
+        create_random_board()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             if state not in ["LOGIN", "AUTO_LOGIN"]: save_game(sync=True)
@@ -464,6 +471,16 @@ while running:
                 elif admin_active_input == "amount":
                     if event.key == pygame.K_BACKSPACE: admin_input_amount = admin_input_amount[:-1]
                     elif event.unicode.isdigit() or (event.unicode == "-" and len(admin_input_amount) == 0): admin_input_amount += event.unicode
+            
+            elif state == "MAP_NAME_INPUT":
+                if event.key == pygame.K_BACKSPACE: map_input_name = map_input_name[:-1]
+                elif event.key == pygame.K_RETURN and map_input_name.strip():
+                    is_uploading = True
+                    threading.Thread(target=upload_map_thread, args=({"author": current_user, "name": map_input_name.strip(), "unfair": editor_is_unfair, "pegs": editor_pegs, "bumpers": editor_bumpers},), daemon=True).start()
+                    state = "MAP_EDITOR"
+                elif event.key not in [pygame.K_RETURN, pygame.K_TAB, pygame.K_ESCAPE]:
+                    map_input_name += event.unicode
+
             elif state == "LOGIN" and not is_authenticating:
                 if active_input == "username":
                     if event.key == pygame.K_BACKSPACE: input_username = input_username[:-1]
@@ -511,16 +528,37 @@ while running:
                             break
                         elif pygame.Rect(WIDTH - 420, y_pos, 100, 40).collidepoint(mx, my):
                             backup_pegs = copy.deepcopy(pegs); backup_bumpers = copy.deepcopy(bumpers); backup_cash = cash
-                            load_custom_map(p_map); is_playtest = True; state = "PLAY"; break
-                            
+                            load_custom_map(p_map); is_playtest = True; playtest_return_state = "ADMIN_PANEL"; state = "PLAY"; break
+
+            elif state == "CUSTOM_MAPS_MENU":
+                if pygame.Rect(WIDTH//2 - 150, HEIGHT//2 - 80, 300, 60).collidepoint(mx, my): state = "MAP_EDITOR"
+                elif pygame.Rect(WIDTH//2 - 150, HEIGHT//2 + 10, 300, 60).collidepoint(mx, my):
+                    state = "BROWSE_MAPS_LOADING"
+                    threading.Thread(target=fetch_maps_from_cloud, daemon=True).start()
+                elif pygame.Rect(WIDTH//2 - 75, HEIGHT//2 + 100, 150, 50).collidepoint(mx, my): state = "MENU"
+
+            elif state == "BROWSE_MAPS":
+                if pygame.Rect(WIDTH - 150, 20, 130, 50).collidepoint(mx, my): state = "CUSTOM_MAPS_MENU"
+                elif pygame.Rect(WIDTH//2 - 250, HEIGHT - 70, 150, 50).collidepoint(mx, my) and browse_map_page > 0: browse_map_page -= 1
+                elif pygame.Rect(WIDTH//2 + 100, HEIGHT - 70, 150, 50).collidepoint(mx, my) and (browse_map_page + 1) * 7 < len(approved_maps_list): browse_map_page += 1
+                else:
+                    start_i = browse_map_page * 7; end_i = min(len(approved_maps_list), start_i + 7)
+                    for i in range(start_i, end_i):
+                        row_y = 100 + (i - start_i) * 70
+                        if pygame.Rect(WIDTH//2 + 250, row_y, 120, 40).collidepoint(mx, my):
+                            backup_pegs = copy.deepcopy(pegs); backup_bumpers = copy.deepcopy(bumpers); backup_cash = cash
+                            load_custom_map(approved_maps_list[i])
+                            is_playtest = True; playtest_return_state = "BROWSE_MAPS"; state = "PLAY"; break
+
             elif state == "MAP_EDITOR" and not is_uploading:
                 clicked_ui = False
-                if pygame.Rect(WIDTH - 120, 20, 100, 40).collidepoint(mx, my): state = "MENU"; clicked_ui = True
+                if pygame.Rect(WIDTH - 120, 20, 100, 40).collidepoint(mx, my): state = "CUSTOM_MAPS_MENU"; clicked_ui = True
                 elif pygame.Rect(WIDTH//2 - 150, 20, 140, 40).collidepoint(mx, my):
                     backup_pegs = copy.deepcopy(pegs); backup_bumpers = copy.deepcopy(bumpers); backup_cash = cash
-                    pegs = copy.deepcopy(editor_pegs); bumpers = copy.deepcopy(editor_bumpers); is_playtest = True; state = "PLAY"; clicked_ui = True
+                    pegs = copy.deepcopy(editor_pegs); bumpers = copy.deepcopy(editor_bumpers)
+                    is_playtest = True; playtest_return_state = "MAP_EDITOR"; state = "PLAY"; clicked_ui = True
                 elif pygame.Rect(WIDTH//2 + 10, 20, 140, 40).collidepoint(mx, my):
-                    is_uploading = True; threading.Thread(target=upload_map_thread, args=({"author": current_user, "unfair": editor_is_unfair, "pegs": editor_pegs, "bumpers": editor_bumpers},), daemon=True).start(); clicked_ui = True
+                    state = "MAP_NAME_INPUT"; map_input_name = ""; clicked_ui = True
                 elif pygame.Rect(WIDTH//2 - 310, 20, 140, 40).collidepoint(mx, my): randomize_editor_pegs(); clicked_ui = True
                 elif pygame.Rect(WIDTH//2 + 170, 20, 150, 40).collidepoint(mx, my): editor_is_unfair = not editor_is_unfair; clicked_ui = True
                 elif pygame.Rect(WIDTH - 250, 20, 110, 40).collidepoint(mx, my): editor_snap = not editor_snap; clicked_ui = True
@@ -533,7 +571,7 @@ while running:
                 if is_playtest:
                     if pygame.Rect(WIDTH//2 - 100, 20, 200, 50).collidepoint(mx, my):
                         cash = backup_cash + int(max(0, cash - backup_cash) * 0.01); pegs = copy.deepcopy(backup_pegs); bumpers = copy.deepcopy(backup_bumpers)
-                        balls.clear(); particles.clear(); is_playtest = False; state = "MAP_EDITOR" if current_user != "DaniBoyNov2014" else "ADMIN_PANEL"; clicked_ui = True
+                        balls.clear(); particles.clear(); is_playtest = False; state = playtest_return_state; clicked_ui = True
                 else:
                     if WIDTH - 120 <= mx <= WIDTH - 20 and 20 <= my <= 60:
                         state = "MENU"; clicked_ui = True
@@ -546,6 +584,13 @@ while running:
                                 if pygame.Rect(WIDTH - 150, auto_y, 130, 35).collidepoint(mx, my): b_stat['auto_enabled'] = not b_stat.get('auto_enabled', True); save_game(); clicked_ui = True; break
                                 auto_y += 45
                                 
+                # DRONE DROP CLICK CHECK
+                if not clicked_ui:
+                    for d in drones[:]:
+                        if math.hypot(mx - d['x'], my - d['y']) < 30 and d['captured'] > 0:
+                            for _ in range(d['captured']): spawn_ball(equipped_ball, d['x'] + random.uniform(-10,10), d['y'] + 15, random.uniform(-3,3), 0)
+                            drones.remove(d); clicked_ui = True; break
+
                 if equipped_abilities and not clicked_ui:
                     for i, a_name in enumerate(equipped_abilities):
                         if pygame.Rect(20, HEIGHT - 70 - (i * 60), 290, 50).collidepoint(mx, my):
@@ -556,7 +601,6 @@ while running:
                     if ability_inventory.get(active_ability_mode, 0) > 0:
                         ability_inventory[active_ability_mode] -= 1
                         
-                        # --- FULLY IMPLEMENTED ABILITIES ---
                         if active_ability_mode == "Midas Touch":
                             for p in pegs:
                                 if p['active'] and math.hypot(p['x']-mx, p['y']-my) < 150: p['type'] = 'gold'
@@ -580,14 +624,16 @@ while running:
                                 if p['active'] and abs(p['x'] - mx) < 60:
                                     p['active'] = False; grant_peg_reward(p, 1.0, True, 'Regular')
                         elif active_ability_mode == "Drone":
-                            drones.append({'x': mx, 'y': my, 'balls_left': 10, 'timer': 0})
+                            drones.append({'x': mx, 'y': my, 'captured': 0})
+                        elif active_ability_mode == "Spawner":
+                            for _ in range(10): spawn_ball(equipped_ball, mx + random.uniform(-20,20), my + random.uniform(-20,20), random.uniform(-5,5), random.uniform(-5,5))
                         elif active_ability_mode == "Fire Cursor":
                             fire_cursor_timer = FPS * 5
                         elif active_ability_mode == "Vacuum Cursor":
                             vacuum_cursor_timer = FPS * 5
                             
                         active_ability_mode = None; save_game(); clicked_ui = True
-                    else: active_ability_mode = None # Just unequip if they click with 0 tokens
+                    else: active_ability_mode = None 
                 
                 if not clicked_ui:
                     if len([b for b in balls if b['is_manual'] and b['type'] == equipped_ball]) < ball_stats[equipped_ball]['max_balls'] and my > 70: 
@@ -604,11 +650,11 @@ while running:
                 btn_pow, btn_cap, btn_auto, btn_cls, c_rects, btn_tree, btn_pres, btn_abil, btn_cust, btn_adm, btn_spec, btn_top, btn_bot, btn_out, btn_del = draw_main_menu()
                 stats = ball_stats[equipped_ball]
                 
-                if btn_out.collidepoint(mx, my): save_game(sync=True); clear_local_settings(); current_user = ""; current_pass = ""; input_password = ""; state = "LOGIN"
+                if btn_out.collidepoint(mx, my): save_game(sync=True); current_user = ""; current_pass = ""; input_password = ""; state = "LOGIN"
                 elif btn_adm and btn_adm.collidepoint(mx, my): state = "ADMIN_PANEL_LOADING"; threading.Thread(target=fetch_maps_from_cloud, daemon=True).start()
                 elif btn_cls.collidepoint(mx, my): state = "PLAY"; save_game()
                 elif btn_cust.collidepoint(mx, my):
-                    if custom_maps_unlocked: state = "MAP_EDITOR"
+                    if custom_maps_unlocked: state = "CUSTOM_MAPS_MENU"
                     elif cash >= 1000000: cash -= 1000000; custom_maps_unlocked = True; save_game()
                 elif btn_del.collidepoint(mx, my): state = "CONFIRM_DELETE"
                 elif btn_tree.collidepoint(mx, my): state = "PRESTIGE_TREE"; view_only_tree = True 
@@ -698,8 +744,8 @@ while running:
             screen.blit(msg_surf, (s_rect.centerx - msg_surf.get_width()//2, s_rect.centery - msg_surf.get_height()//2))
             if is_authenticating: pygame.draw.arc(screen, CYAN, (s_rect.x + 15, s_rect.centery - 10, 20, 20), pygame.time.get_ticks() / 150.0, (pygame.time.get_ticks() / 150.0) + math.pi, 3)
 
-    elif state == "ADMIN_PANEL_LOADING":
-        screen.fill(BLACK); screen.blit(font_huge.render("FETCHING MAPS & CLOUD DATA...", True, CYAN), (WIDTH//2 - 400, HEIGHT//2))
+    elif state == "ADMIN_PANEL_LOADING" or state == "BROWSE_MAPS_LOADING":
+        screen.fill(BLACK); screen.blit(font_huge.render("FETCHING CLOUD DATA...", True, CYAN), (WIDTH//2 - 350, HEIGHT//2))
 
     elif state == "ADMIN_PANEL":
         screen.fill(BLACK); screen.blit(font_huge.render("ADMIN PANEL", True, MAGENTA), (50, 20))
@@ -720,6 +766,46 @@ while running:
             draw_btn(screen, pygame.Rect(WIDTH - 300, y_pos, 100, 40), GREEN, "Approve", font_med, BLACK)
             draw_btn(screen, pygame.Rect(WIDTH - 180, y_pos, 100, 40), RED, "Reject", font_med, WHITE)
 
+    elif state == "CUSTOM_MAPS_MENU":
+        screen.fill(BLACK)
+        pygame.draw.rect(screen, DARK_BLUE, (WIDTH//2 - 200, HEIGHT//2 - 150, 400, 300), border_radius=10)
+        pygame.draw.rect(screen, CYAN, (WIDTH//2 - 200, HEIGHT//2 - 150, 400, 300), 3, border_radius=10)
+        screen.blit(font_large.render("CUSTOM MAPS", True, WHITE), (WIDTH//2 - 140, HEIGHT//2 - 130))
+        draw_btn(screen, pygame.Rect(WIDTH//2 - 150, HEIGHT//2 - 80, 300, 60), GREEN, "CREATE MAP", font_med, BLACK)
+        draw_btn(screen, pygame.Rect(WIDTH//2 - 150, HEIGHT//2 + 10, 300, 60), LIGHT_BLUE, "BROWSE MAPS", font_med, BLACK)
+        draw_btn(screen, pygame.Rect(WIDTH//2 - 75, HEIGHT//2 + 100, 150, 50), RED, "BACK", font_med, WHITE)
+
+    elif state == "BROWSE_MAPS":
+        screen.fill(BLACK)
+        screen.blit(font_huge.render("BROWSE APPROVED MAPS", True, CYAN), (50, 30))
+        draw_btn(screen, pygame.Rect(WIDTH - 150, 20, 130, 50), RED, "BACK", font_med, WHITE)
+        
+        start_i = browse_map_page * 7
+        end_i = min(len(approved_maps_list), start_i + 7)
+        for i in range(start_i, end_i):
+            map_data = approved_maps_list[i]
+            row_y = 100 + (i - start_i) * 70
+            pygame.draw.rect(screen, DARK_GRAY, (50, row_y, WIDTH - 100, 60), border_radius=5)
+            pygame.draw.rect(screen, WHITE, (50, row_y, WIDTH - 100, 60), 2, border_radius=5)
+            screen.blit(font_large.render(f"#{i + 1}", True, GOLD), (70, row_y + 15))
+            screen.blit(font_med.render(map_data.get('name', 'Unnamed Map'), True, WHITE), (150, row_y + 18))
+            screen.blit(font_small.render(f"By: {map_data.get('author', 'Unknown')}", True, LIGHT_BLUE), (500, row_y + 20))
+            if map_data.get('unfair'): screen.blit(font_med.render("[UNFAIR]", True, RED), (WIDTH//2 + 50, row_y + 18))
+            draw_btn(screen, pygame.Rect(WIDTH//2 + 250, row_y + 10, 120, 40), GREEN, "PLAY", font_med, BLACK)
+
+        draw_btn(screen, pygame.Rect(WIDTH//2 - 250, HEIGHT - 70, 150, 50), DARK_GRAY if browse_map_page == 0 else CYAN, "PREV", font_med, WHITE)
+        screen.blit(font_med.render(f"Page {browse_map_page + 1} of {max(1, math.ceil(len(approved_maps_list)/7))}", True, WHITE), (WIDTH//2 - 60, HEIGHT - 60))
+        draw_btn(screen, pygame.Rect(WIDTH//2 + 100, HEIGHT - 70, 150, 50), DARK_GRAY if end_i >= len(approved_maps_list) else CYAN, "NEXT", font_med, WHITE)
+
+    elif state == "MAP_NAME_INPUT":
+        screen.fill(BLACK)
+        pygame.draw.rect(screen, TAN, (WIDTH//2 - 250, HEIGHT//2 - 100, 500, 200), border_radius=10)
+        pygame.draw.rect(screen, PURPLE, (WIDTH//2 - 250, HEIGHT//2 - 100, 500, 200), 3, border_radius=10)
+        screen.blit(font_med.render("Enter Map Name:", True, BLACK), (WIDTH//2 - 100, HEIGHT//2 - 80))
+        pygame.draw.rect(screen, WHITE, (WIDTH//2 - 200, HEIGHT//2 - 20, 400, 40))
+        screen.blit(font_med.render(map_input_name, True, BLACK), (WIDTH//2 - 190, HEIGHT//2 - 10))
+        screen.blit(font_small.render("(Press ENTER to Upload, ESC to Cancel)", True, DARK_GRAY), (WIDTH//2 - 160, HEIGHT//2 + 40))
+
     elif state == "MAP_EDITOR":
         screen.fill(BLACK)
         max_y = HEIGHT - 175
@@ -737,8 +823,6 @@ while running:
         draw_btn(screen, pygame.Rect(WIDTH//2 - 310, 20, 140, 40), CYAN, "Randomize", font_med, BLACK)
         draw_btn(screen, pygame.Rect(WIDTH//2 + 170, 20, 150, 40), ORANGE if editor_is_unfair else DARK_GRAY, "Unfair Map", font_med, BLACK)
         draw_btn(screen, pygame.Rect(WIDTH - 250, 20, 110, 40), LIGHT_BLUE if editor_snap else GRAY, "Snap: ON" if editor_snap else "Snap: OFF", font_small, BLACK)
-        
-        screen.blit(font_med.render(f"Cloud Stats - Approved Maps: {len(approved_maps_list)} | Pending Queue: {len(pending_maps_list)}", True, CYAN), (20, HEIGHT - 70))
 
         for i, (t_name, t_color) in enumerate([('green', GREEN), ('gold', GOLD), ('bomb', DARK_GRAY), ('rainbow', WHITE), ('stat', CYAN), ('boss', MAGENTA), ('random', GRAY), ('bumper', GRAY)]):
             rect = pygame.Rect(20, 100 + i*50, 40, 40); pygame.draw.rect(screen, t_color, rect, border_radius=5)
@@ -779,7 +863,6 @@ while running:
                     if b_stat['auto_timer'] >= get_auto_drop_rate(b_stat['auto_drop_lvl']) * FPS:
                         b_stat['auto_timer'] = 0; spawn_ball(b_name, random.choice(active_pegs)['x'] + random.uniform(-15, 15) if active_pegs and random.random() < 0.8 else random.randint(20, WIDTH-20), 20.0, random.uniform(-1, 1), 0.0)
         
-        # --- NEW ACTIVE ABILITIES EFFECTS ---
         if fire_cursor_timer > 0:
             fire_cursor_timer -= 1
             pygame.draw.circle(screen, ORANGE, (mx, my), 75, 2)
@@ -797,13 +880,12 @@ while running:
                     b['vx'] += (dx/dist) * 1.5; b['vy'] += (dy/dist) * 1.5 - b['grav']
 
         for d in drones[:]:
-            d['timer'] -= 1
             pygame.draw.rect(screen, WHITE, (int(d['x'])-20, int(d['y'])-10, 40, 20))
             pygame.draw.circle(screen, RED, (int(d['x']), int(d['y'])+10), 5)
-            if d['timer'] <= 0:
-                spawn_ball(equipped_ball, d['x'], d['y']+15, random.uniform(-2, 2), 0)
-                d['balls_left'] -= 1; d['timer'] = FPS // 2
-                if d['balls_left'] <= 0: drones.remove(d)
+            screen.blit(font_tiny.render(str(d['captured']), True, BLACK), (int(d['x'])-5, int(d['y'])-7))
+            for b in balls[:]:
+                if math.hypot(b['x'] - d['x'], b['y'] - d['y']) < 30:
+                    d['captured'] += 1; balls.remove(b)
 
         for bh in black_holes[:]:
             bh['life'] -= 1
@@ -826,8 +908,27 @@ while running:
             surf.fill((255, 0, 0, alpha))
             screen.blit(surf, (int(lz['x']) - 60, 0))
             if lz['life'] <= 0: lasers.remove(lz)
+            
+        for lz in lightnings[:]:
+            lz['life'] -= 1
+            pygame.draw.line(screen, YELLOW, (lz['x1'], lz['y1']), (lz['x2'], lz['y2']), 3)
+            if lz['life'] <= 0: lightnings.remove(lz)
                         
         for b in balls[:]:
+            if b['type'] == 'Magic':
+                b['lightning_timer'] -= 1
+                if b['lightning_timer'] <= 0:
+                    b['lightning_timer'] = FPS * 1.5
+                    active_p = [p for p in pegs if p['active']]
+                    if active_p:
+                        rp = random.choice(active_p)
+                        lightnings.append({'x1': b['x'], 'y1': b['y'], 'x2': rp['x'], 'y2': rp['y'], 'life': 10})
+                        rp['active'] = False; grant_peg_reward(rp, b['gold_mult'], False, 'Magic')
+                        
+            if b['type'] == 'Wood':
+                if random.random() < 0.05:
+                    cash += int(1 * b['gold_mult']); spawn_particles(b['x'], b['y'], GREEN, 1, 1.0)
+            
             b['vy'] += b['grav']; b['x'] += b['vx']; b['y'] += b['vy']
             speed = math.hypot(b['vx'], b['vy'])
             if speed > 18.0: b['vx'] = (b['vx'] / speed) * 18.0; b['vy'] = (b['vy'] / speed) * 18.0
@@ -836,7 +937,15 @@ while running:
             if b['x'] - rad < 0 or b['x'] + rad > WIDTH:
                 b['x'] = rad if b['x'] - rad < 0 else WIDTH - rad; b['vx'] *= -b['bounce']; bounce_sound.play()
                 if b['type'] == 'Regular': cash += int(5 * (0.01 if is_playtest else 1))
-            if b['y'] - rad > HEIGHT: balls.remove(b); continue 
+            
+            if b['y'] - rad > HEIGHT: 
+                if 'top' in b['revive_stack']:
+                    b['revive_stack'].remove('top'); b['y'] = 40; b['vy'] = 0
+                elif 'bounce' in b['revive_stack']:
+                    b['revive_stack'].remove('bounce'); b['vy'] = -15; b['y'] = HEIGHT - rad
+                else:
+                    balls.remove(b)
+                continue 
             
             for bmp in bumpers:
                 dx, dy = b['x'] - bmp['x'], b['y'] - bmp['y']; dist = math.hypot(dx, dy)

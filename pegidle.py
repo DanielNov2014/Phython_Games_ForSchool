@@ -5,7 +5,7 @@ pygame.init(); pygame.mixer.init()
 infoObject = pygame.display.Info()
 WIDTH, HEIGHT = infoObject.current_w, infoObject.current_h
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
-pygame.display.set_caption("Peggle Idle/Upgrades (CE Edition)")
+pygame.display.set_caption("Peggle Idle/Upgrades (CE Edition) v 1.1")
 clock = pygame.time.Clock(); FPS = 60
 SAVE_FILE = "peggle_save_v18.json"; SETTINGS_FILE = "peggle_settings.json"
 

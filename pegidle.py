@@ -44,9 +44,10 @@ BALL_TYPES = {
     "Bouncy":  {"color": CYAN, "base_grav": 0.15, "base_bounce": 0.95, "cost": 15000, "desc": "Multiplier grows on wall hits"},
     "Maroon":  {"color": MAROON, "base_grav": 0.35, "base_bounce": 0.70, "cost": 50000, "desc": "Bounces off the bottom once"},
     "Hoops":   {"color": ORANGE, "base_grav": 0.25, "base_bounce": 0.92, "cost": 150000, "desc": "Teleports to top on drop"},
-    "Taco":    {"color": YELLOW, "base_grav": 0.30, "base_bounce": 0.60, "cost": 15000000, "desc": "Eats 3 pegs at once. Breaks in 2-4 hits!"},
     "Magic":   {"color": PURPLE, "base_grav": 0.25, "base_bounce": 0.90, "cost": 500000, "desc": "Floats & Zaps 2 times"},
     "Wood":    {"color": BROWN, "base_grav": 0.30, "base_bounce": 0.65, "cost": 1000000, "desc": "Passively grows money mid-air"},
+    "Taco":    {"color": YELLOW, "base_grav": 0.30, "base_bounce": 0.60, "cost": 15000000, "desc": "Eats 3 pegs at once. Breaks in 2-4 hits!"},
+    "Gravity": {"color": LIGHT_BLUE, "base_grav": 0.25, "base_bounce": 0.95, "cost": 50000000, "desc": "Floats for 10s, shares 0G. 3x on Gold!"},
     "Shrapnel": {"color": GRAY, "base_grav": 0.30, "base_bounce": 0.60, "cost": 0, "desc": "", "hidden": True} 
 }
 ABILITIES = {"Fire Cursor": {"desc": "5s Buff: Hold click to burn pegs", "color": ORANGE, "rarity": "Common"}, "Vacuum Cursor": {"desc": "5s Buff: Hold click to juggle balls!", "color": LIGHT_BLUE, "rarity": "Common"}, "Thunder Cloud": {"desc": "Click to blast 5 random pegs!", "color": DARK_GRAY, "rarity": "Rare"}, "Bounce Revive": {"desc": "Instantly gives active balls an extra bounce!", "color": GREEN, "rarity": "Rare"}, "Spawner": {"desc": "Click to spawn 10 of equipped ball!", "color": GREEN, "rarity": "Rare"}, "Midas Touch": {"desc": "Click to turn an area of pegs into Gold!", "color": GOLD, "rarity": "Epic"}, "Starfall": {"desc": "Instantly drops 10 bouncy balls!", "color": LIGHT_BLUE, "rarity": "Epic"}, "Drone": {"desc": "Drone hunts and catches balls. Click to drop!", "color": WHITE, "rarity": "Epic"}, "Revive Wave": {"desc": "Gives active balls a Top Revive!", "color": CYAN, "rarity": "Legendary"}, "Black Hole": {"desc": "Sucks pegs for 6s. Pegs eaten pay 2x!", "color": PURPLE, "rarity": "Legendary"}, "Orbital Strike": {"desc": "Blasts a vertical column with a laser!", "color": RED, "rarity": "Legendary"}}
@@ -67,8 +68,8 @@ admin_input_user = ""; admin_input_amount = ""; admin_active_input = "user"; adm
 auth_message = ""; is_authenticating = False; gift_popup_msg = ""
 last_save_time = time.time(); offline_rewards = {}; anim_cash = 0.0; anim_pp = 0.0; anim_sp = 0.0; crate_results_display = []
 p_upgrades = {k: 0 for k in PRESTIGE_DEFS.keys()}
-balls = []; pegs = []; bumpers = []; particles = []; lightnings = []; clouds = []; black_holes = []; lasers = []; drones = []
-fire_cursor_timer = 0; vacuum_cursor_timer = 0
+balls = []; pegs = []; bumpers = []; particles = []; lightnings = []; clouds = []; black_holes = []; lasers = []; drones = []; pulse_rings = []
+fire_cursor_timer = 0; vacuum_cursor_timer = 0; active_buffs = {'money_2x': 0, 'pp_2x': 0}; lb_time_remaining = 0
 
 CANNON_POS = (WIDTH // 2, 40); PEG_RADIUS = 12; BALL_RADIUS = 10; board_clear_timer = 0; event_text_str = ""; event_timer = 0
 
@@ -76,8 +77,11 @@ def get_default_ball_stats(unlocked=False): return {'unlocked': unlocked, 'level
 ball_stats = {name: get_default_ball_stats(unlocked=(name=="Regular")) for name in BALL_TYPES.keys()}
 
 def format_time(s):
-    m, s = divmod(s, 60); h, m = divmod(m, 60)
-    return f"{h}h {m}m" if h > 0 else f"{m}m {s}s"
+    s = max(0, int(s))
+    d, s = divmod(s, 86400); h, s = divmod(s, 3600); m, s = divmod(s, 60)
+    if d > 0: return f"{d}d {h}h {m}m"
+    elif h > 0: return f"{h}h {m}m {s}s"
+    else: return f"{m}m {s}s"
 
 def draw_btn(surface, rect, color, text, font, text_color=BLACK, outline=True):
     if not rect: return
@@ -112,14 +116,15 @@ def send_to_gas(payload):
     except Exception as e: return {"success": False, "message": f"Network Error: {str(e)}"}
 
 def get_save_data_dict():
-    return {'cash': cash, 'prestige_points': prestige_points, 'stat_points': stat_points, 'equipped_ball': equipped_ball, 'equipped_abilities': equipped_abilities, 'ability_inventory': ability_inventory, 'boards_cleared': boards_cleared, 'ball_stats': ball_stats, 'p_upgrades': p_upgrades, 'custom_maps_unlocked': custom_maps_unlocked, 'last_save_time': time.time()}
+    return {'cash': cash, 'prestige_points': prestige_points, 'stat_points': stat_points, 'equipped_ball': equipped_ball, 'equipped_abilities': equipped_abilities, 'ability_inventory': ability_inventory, 'boards_cleared': boards_cleared, 'ball_stats': ball_stats, 'p_upgrades': p_upgrades, 'custom_maps_unlocked': custom_maps_unlocked, 'last_save_time': time.time(), 'active_buffs': active_buffs}
 
 def apply_save_data(data):
-    global cash, prestige_points, stat_points, equipped_ball, equipped_abilities, ability_inventory, boards_cleared, ball_stats, p_upgrades, last_save_time, custom_maps_unlocked
+    global cash, prestige_points, stat_points, equipped_ball, equipped_abilities, ability_inventory, boards_cleared, ball_stats, p_upgrades, last_save_time, custom_maps_unlocked, active_buffs
     cash = data.get('cash', cash); prestige_points = data.get('prestige_points', prestige_points); stat_points = data.get('stat_points', stat_points); equipped_ball = data.get('equipped_ball', equipped_ball); custom_maps_unlocked = data.get('custom_maps_unlocked', False)
     for k in ability_inventory.keys(): ability_inventory[k] = data.get('ability_inventory', {}).get(k, 0)
     equipped_abilities = data.get('equipped_abilities', equipped_abilities); boards_cleared = data.get('boards_cleared', boards_cleared); last_save_time = data.get('last_save_time', time.time())
     for k in p_upgrades.keys(): p_upgrades[k] = data.get('p_upgrades', {}).get(k, 0)
+    active_buffs = data.get('active_buffs', {'money_2x': 0, 'pp_2x': 0})
     for k, v in data.get('ball_stats', {}).items():
         if k in ball_stats: ball_stats[k].update(v)
 
@@ -150,31 +155,46 @@ def moderate_map_thread(index, action_type, is_unfair):
         admin_status_msg = "Error: " + str(res.get("message"))
 
 def fetch_leaderboard_thread():
-    global leaderboard_data, state
+    global leaderboard_data, state, lb_time_remaining
     res = send_to_gas({"action": "get_leaderboard", "username": current_user, "password": current_pass})
     if res.get("success"):
         leaderboard_data = res.get("leaderboard") or []
+        lb_time_remaining = max(0, (res.get("next_reward_time", 0) - res.get("server_time", 0)) / 1000)
     else:
         leaderboard_data = [{"username": "Cloud Update Required", "boards_cleared": "N/A", "cash": "N/A"}]
     if state == "LEADERBOARD_LOADING": state = "LEADERBOARD"
 
 def check_for_gifts_thread():
-    global cash, gift_popup_msg
+    global cash, prestige_points, stat_points, gift_popup_msg, active_buffs
     if not current_user: return
     try:
         res = send_to_gas({"action": "check_gifts", "username": current_user, "password": current_pass})
         if res.get("success") and res.get("gifts"):
-            total = 0
+            total_cash, total_pp, total_sp = 0, 0, 0
+            gift_msgs = []
             for g in res["gifts"]:
-                try: total += int(g.get("amount", 0))
-                except: pass
-                
-            if total > 0:
-                cash += total
-                gift_popup_msg = f"The Admin has sent you ${total}!"
+                total_cash += int(g.get("amount", 0))
+                total_pp += int(g.get("pp", 0))
+                total_sp += int(g.get("sp", 0))
+                if "buff" in g: active_buffs[g["buff"]] = max(active_buffs.get(g["buff"], 0), g["duration"])
+                if "msg" in g: gift_msgs.append(g["msg"])
+            
+            if total_cash > 0 or total_pp > 0 or total_sp > 0:
+                cash += total_cash; prestige_points += total_pp; stat_points += total_sp
+                msg_text = " | ".join(gift_msgs) if gift_msgs else "A gift from the server!"
+                gift_popup_msg = f"Rewards: ${total_cash}, {total_pp} PP, {total_sp} SP! \n{msg_text}"
                 save_game(sync=True)
-    except Exception as e:
-        print("Gift Check Failed:", e)
+    except Exception as e: print("Gift Check Failed:", e)
+
+def upload_map_thread(map_data):
+    global is_uploading, upload_message, editor_pegs, editor_bumpers
+    res = send_to_gas({"action": "upload_map", "username": current_user, "password": current_pass, "mapData": map_data})
+    if res.get("success"):
+        upload_message = "Map Uploaded Successfully!"; time.sleep(1.5)
+        editor_pegs = []; editor_bumpers = []
+    else:
+        upload_message = "Error: " + str(res.get("message")); time.sleep(3)
+    upload_message = ""; is_uploading = False
 
 def auth_thread(action, username, password):
     global auth_message, is_authenticating, state, current_user, current_pass
@@ -315,10 +335,10 @@ def check_offline_progress():
                     anim_cash = 0.0; anim_pp = 0.0; anim_sp = 0.0; state = "OFFLINE_SCREEN"
 
 def perform_prestige_reset():
-    global cash, stat_points, ball_stats, equipped_ball, equipped_abilities, active_ability_mode, balls, boards_cleared, particles, lightnings, clouds, black_holes, lasers, drones, fire_cursor_timer, vacuum_cursor_timer
+    global cash, stat_points, ball_stats, equipped_ball, equipped_abilities, active_ability_mode, balls, boards_cleared, particles, lightnings, clouds, black_holes, lasers, drones, fire_cursor_timer, vacuum_cursor_timer, pulse_rings
     cash = p_upgrades['starter_cash'] * 1000; boards_cleared = 0; equipped_ball = "Regular"; equipped_abilities = []; active_ability_mode = None
     fire_cursor_timer = 0; vacuum_cursor_timer = 0
-    balls.clear(); particles.clear(); lightnings.clear(); clouds.clear(); black_holes.clear(); lasers.clear(); drones.clear()
+    balls.clear(); particles.clear(); lightnings.clear(); clouds.clear(); black_holes.clear(); lasers.clear(); drones.clear(); pulse_rings.clear()
     for b_stat in ball_stats.values():
         stat_points += (b_stat.get('base_top_revives', 0) * (b_stat.get('base_top_revives', 0) + 1)) // 2
         stat_points += (b_stat.get('base_bounce_revives', 0) * (b_stat.get('base_bounce_revives', 0) + 1)) // 2
@@ -326,13 +346,13 @@ def perform_prestige_reset():
     create_random_board(); save_game()
 
 def perform_data_nuke():
-    global cash, prestige_points, stat_points, boards_cleared, equipped_ball, ability_inventory, equipped_abilities, active_ability_mode, p_upgrades, ball_stats, custom_maps_unlocked, fire_cursor_timer, vacuum_cursor_timer, balls, particles, lightnings, clouds, black_holes, lasers, drones
+    global cash, prestige_points, stat_points, boards_cleared, equipped_ball, ability_inventory, equipped_abilities, active_ability_mode, p_upgrades, ball_stats, custom_maps_unlocked, fire_cursor_timer, vacuum_cursor_timer, balls, particles, lightnings, clouds, black_holes, lasers, drones, pulse_rings
     cash = 0; prestige_points = 0; stat_points = 0; boards_cleared = 0
     equipped_ball = "Regular"; ability_inventory = {k: 0 for k in ABILITIES.keys()}; equipped_abilities = []; active_ability_mode = None
     p_upgrades = {k: 0 for k in PRESTIGE_DEFS.keys()}; custom_maps_unlocked = False
     ball_stats = {name: get_default_ball_stats(unlocked=(name=="Regular")) for name in BALL_TYPES.keys()}
     fire_cursor_timer = 0; vacuum_cursor_timer = 0
-    balls.clear(); particles.clear(); lightnings.clear(); clouds.clear(); black_holes.clear(); lasers.clear(); drones.clear()
+    balls.clear(); particles.clear(); lightnings.clear(); clouds.clear(); black_holes.clear(); lasers.clear(); drones.clear(); pulse_rings.clear()
     create_random_board(); save_game(sync=True)
 
 def generate_tree_nodes():
@@ -363,29 +383,34 @@ def spawn_ball(ball_type, x, y, vx, vy, is_manual=False, inherited_mult=None):
     revive_stack = []
     if random.random() < 0.40:
         revive_stack.extend(['top'] * stats.get('base_top_revives', 0)); revive_stack.extend(['bounce'] * stats.get('base_bounce_revives', 0)); random.shuffle(revive_stack)
-    
     if ball_type == 'Maroon': revive_stack.append('bounce')
     elif ball_type == 'Hoops': revive_stack.append('top')
     
     b_dict = {'type': ball_type, 'is_manual': is_manual, 'x': x, 'y': y, 'vx': vx, 'vy': vy, 'color': b['color'], 'grav': b['base_grav'], 'bounce': min(0.98, b['base_bounce'] + stats['bounce_bonus']), 'radius': 4 if ball_type == "Shrapnel" else BALL_RADIUS, 'gold_mult': inherited_mult if inherited_mult else stats['gold_mult'], 'revive_stack': revive_stack}
     if ball_type == 'Magic': b_dict.update({'grav': 0.0, 'lightning_timer': FPS * 1.5, 'vy': 0.0, 'lightning_strikes': 2})
     elif ball_type == 'Taco': b_dict.update({'max_hits': random.randint(2, 4), 'hits_taken': 0, 'radius': 14})
+    elif ball_type == 'Gravity': b_dict.update({'anti_grav_timer': FPS * 10, 'pulse_timer': FPS * 3})
     balls.append(b_dict)
 
 def grant_peg_reward(peg, gold_mult, is_direct_hit=True, b_type=None):
     global cash, prestige_points, stat_points
     if is_playtest: gold_mult *= 0.01 
+    if b_type == 'Gravity' and peg['type'] == 'gold': gold_mult *= 3.0
+    
+    cash_mult = 2 if active_buffs.get('money_2x', 0) > 0 else 1
+    pp_mult = 2 if active_buffs.get('pp_2x', 0) > 0 else 1
+
     if peg['type'] == 'prestige':
-        if not is_playtest: prestige_points += 3
+        if not is_playtest: prestige_points += 3 * pp_mult
         spawn_particles(peg['x'], peg['y'], BRONZE, count=20, speed=5.0)
     elif peg['type'] == 'stat':
         if not is_playtest: stat_points += 1
         spawn_particles(peg['x'], peg['y'], CYAN, count=30, speed=6.0)
     elif peg['type'] == 'boss':
-        cash += int(500 * gold_mult); spawn_particles(peg['x'], peg['y'], MAGENTA, count=40, speed=8.0)
+        cash += int(500 * gold_mult * cash_mult); spawn_particles(peg['x'], peg['y'], MAGENTA, count=40, speed=8.0)
     else:
         bv = 10 if peg['type'] == 'gold' else (5 if peg['type'] in ['bomb', 'rainbow'] else 0)
-        if bv > 0: cash += int(bv * gold_mult)
+        if bv > 0: cash += int(bv * gold_mult * cash_mult)
         
     if is_direct_hit:
         if peg['type'] == 'bomb':
@@ -399,7 +424,7 @@ def grant_peg_reward(peg, gold_mult, is_direct_hit=True, b_type=None):
                     if p['active'] and p['type'] == 'green' and random.random() < 0.5: p['type'] = 'gold'
             elif event_roll == 2: 
                 for _ in range(5): spawn_ball(b_type if b_type != 'Shrapnel' else 'Regular', peg['x'], peg['y'], random.uniform(-8, 8), random.uniform(-8, -2))
-            elif event_roll == 3: cash += int(500 * gold_mult)
+            elif event_roll == 3: cash += int(500 * gold_mult * cash_mult)
 
 def roll_crate(crate_name):
     crate = CRATES[crate_name]; results = []
@@ -439,9 +464,9 @@ def draw_main_menu():
             screen.blit(font_small.render(f"Top Rev: {top_lv}/5", True, DARK_BLUE), (m_x + 680, m_y + 95)); btns['top'] = pygame.Rect(m_x + 790, m_y + 90, 60, 25); draw_btn(screen, btns['top'], CYAN if stat_points >= top_lv+1 else GRAY, f"{top_lv+1} SP", font_small, BLACK)
             screen.blit(font_small.render(f"Bot Rev: {bot_lv}/5", True, DARK_BLUE), (m_x + 680, m_y + 120)); btns['bot'] = pygame.Rect(m_x + 790, m_y + 115, 60, 25); draw_btn(screen, btns['bot'], GREEN if stat_points >= bot_lv+1 else GRAY, f"{bot_lv+1} SP", font_small, BLACK)
             
-        c_rects = {}; start_x = m_x + (menu_w - (5 * 145)) // 2 + 10; start_y = m_y + 240
+        c_rects = {}; start_x = m_x + (menu_w - (6 * 145)) // 2 + 10; start_y = m_y + 240
         for i, (b_name, b_data) in enumerate({k: v for k, v in BALL_TYPES.items() if not v.get('hidden')}.items()):
-            card = pygame.Rect(start_x + ((i % 5) * 145), start_y + ((i // 5) * 135), 135, 125); c_rects[b_name] = card
+            card = pygame.Rect(start_x + ((i % 6) * 145), start_y + ((i // 6) * 135), 135, 125); c_rects[b_name] = card
             pygame.draw.rect(screen, TAN, card, border_radius=5); pygame.draw.rect(screen, GOLD if equipped_ball == b_name else BLACK, card, 3, border_radius=5)
             if b_name == "Taco": pygame.draw.circle(screen, GOLD, (card.x+67, card.y+25), 15); pygame.draw.rect(screen, BROWN, (card.x+54, card.y+23, 26, 6)); pygame.draw.rect(screen, GREEN, (card.x+56, card.y+19, 22, 4))
             else: pygame.draw.circle(screen, b_data['color'], (card.x + 67, card.y + 25), 15); pygame.draw.circle(screen, WHITE, (card.x + 62, card.y + 20), 4)
@@ -470,8 +495,11 @@ while running:
     mx, my = pygame.mouse.get_pos()
     active_pegs = [p for p in pegs if p['active']]
     
-    if not is_playtest and len(pegs) == 0 and board_clear_timer == 0:
-        create_random_board()
+    if active_buffs.get('money_2x', 0) > 0: active_buffs['money_2x'] -= 1 / FPS
+    if active_buffs.get('pp_2x', 0) > 0: active_buffs['pp_2x'] -= 1 / FPS
+    if lb_time_remaining > 0: lb_time_remaining -= 1 / FPS
+
+    if not is_playtest and len(pegs) == 0 and board_clear_timer == 0: create_random_board()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -486,16 +514,11 @@ while running:
                 elif admin_active_input == "amount":
                     if event.key == pygame.K_BACKSPACE: admin_input_amount = admin_input_amount[:-1]
                     elif event.unicode.isdigit() or (event.unicode == "-" and len(admin_input_amount) == 0): admin_input_amount += event.unicode
-            
             elif state == "MAP_NAME_INPUT":
                 if event.key == pygame.K_BACKSPACE: map_input_name = map_input_name[:-1]
                 elif event.key == pygame.K_RETURN and map_input_name.strip():
-                    is_uploading = True
-                    threading.Thread(target=upload_map_thread, args=({"author": current_user, "name": map_input_name.strip(), "unfair": editor_is_unfair, "pegs": editor_pegs, "bumpers": editor_bumpers},), daemon=True).start()
-                    state = "MAP_EDITOR"
-                elif event.key not in [pygame.K_RETURN, pygame.K_TAB, pygame.K_ESCAPE]:
-                    map_input_name += event.unicode
-
+                    is_uploading = True; threading.Thread(target=upload_map_thread, args=({"author": current_user, "name": map_input_name.strip(), "unfair": editor_is_unfair, "pegs": editor_pegs, "bumpers": editor_bumpers},), daemon=True).start(); state = "MAP_EDITOR"
+                elif event.key not in [pygame.K_RETURN, pygame.K_TAB, pygame.K_ESCAPE]: map_input_name += event.unicode
             elif state == "LOGIN" and not is_authenticating:
                 if active_input == "username":
                     if event.key == pygame.K_BACKSPACE: input_username = input_username[:-1]
@@ -531,23 +554,16 @@ while running:
                 else:
                     for i, p_map in enumerate(pending_maps_list):
                         y_pos = 100 + (i * 50)
-                        if pygame.Rect(WIDTH - 540, y_pos, 100, 40).collidepoint(mx, my):
-                            p_map['unfair'] = not p_map.get('unfair', False); break
-                        elif pygame.Rect(WIDTH - 300, y_pos, 100, 40).collidepoint(mx, my):
-                            threading.Thread(target=moderate_map_thread, args=(i, "approve", p_map.get('unfair', False)), daemon=True).start()
-                            break
-                        elif pygame.Rect(WIDTH - 180, y_pos, 100, 40).collidepoint(mx, my):
-                            threading.Thread(target=moderate_map_thread, args=(i, "reject", p_map.get('unfair', False)), daemon=True).start()
-                            break
+                        if pygame.Rect(WIDTH - 540, y_pos, 100, 40).collidepoint(mx, my): p_map['unfair'] = not p_map.get('unfair', False); break
+                        elif pygame.Rect(WIDTH - 300, y_pos, 100, 40).collidepoint(mx, my): threading.Thread(target=moderate_map_thread, args=(i, "approve", p_map.get('unfair', False)), daemon=True).start(); break
+                        elif pygame.Rect(WIDTH - 180, y_pos, 100, 40).collidepoint(mx, my): threading.Thread(target=moderate_map_thread, args=(i, "reject", p_map.get('unfair', False)), daemon=True).start(); break
                         elif pygame.Rect(WIDTH - 420, y_pos, 100, 40).collidepoint(mx, my):
                             backup_pegs = copy.deepcopy(pegs); backup_bumpers = copy.deepcopy(bumpers); backup_cash = cash
                             load_custom_map(p_map); is_playtest = True; playtest_return_state = "ADMIN_PANEL"; state = "PLAY"; break
 
             elif state == "CUSTOM_MAPS_MENU":
                 if pygame.Rect(WIDTH//2 - 150, HEIGHT//2 - 80, 300, 60).collidepoint(mx, my): state = "MAP_EDITOR"
-                elif pygame.Rect(WIDTH//2 - 150, HEIGHT//2 + 10, 300, 60).collidepoint(mx, my):
-                    state = "BROWSE_MAPS_LOADING"
-                    threading.Thread(target=fetch_maps_from_cloud, daemon=True).start()
+                elif pygame.Rect(WIDTH//2 - 150, HEIGHT//2 + 10, 300, 60).collidepoint(mx, my): state = "BROWSE_MAPS_LOADING"; threading.Thread(target=fetch_maps_from_cloud, daemon=True).start()
                 elif pygame.Rect(WIDTH//2 - 75, HEIGHT//2 + 100, 150, 50).collidepoint(mx, my): state = "MENU"
 
             elif state == "BROWSE_MAPS":
@@ -560,8 +576,7 @@ while running:
                         row_y = 100 + (i - start_i) * 70
                         if pygame.Rect(WIDTH//2 + 250, row_y, 120, 40).collidepoint(mx, my):
                             backup_pegs = copy.deepcopy(pegs); backup_bumpers = copy.deepcopy(bumpers); backup_cash = cash
-                            load_custom_map(approved_maps_list[i])
-                            is_playtest = True; playtest_return_state = "BROWSE_MAPS"; state = "PLAY"; break
+                            load_custom_map(approved_maps_list[i]); is_playtest = True; playtest_return_state = "BROWSE_MAPS"; state = "PLAY"; break
 
             elif state == "LEADERBOARD":
                 if pygame.Rect(WIDTH - 150, 20, 130, 50).collidepoint(mx, my): state = "MENU"
@@ -573,21 +588,20 @@ while running:
                     backup_pegs = copy.deepcopy(pegs); backup_bumpers = copy.deepcopy(bumpers); backup_cash = cash
                     pegs = copy.deepcopy(editor_pegs); bumpers = copy.deepcopy(editor_bumpers)
                     is_playtest = True; playtest_return_state = "MAP_EDITOR"; state = "PLAY"; clicked_ui = True
-                elif pygame.Rect(WIDTH//2 + 10, 20, 140, 40).collidepoint(mx, my):
-                    state = "MAP_NAME_INPUT"; map_input_name = ""; clicked_ui = True
+                elif pygame.Rect(WIDTH//2 + 10, 20, 140, 40).collidepoint(mx, my): state = "MAP_NAME_INPUT"; map_input_name = ""; clicked_ui = True
                 elif pygame.Rect(WIDTH//2 - 310, 20, 140, 40).collidepoint(mx, my): randomize_editor_pegs(); clicked_ui = True
                 elif pygame.Rect(WIDTH//2 + 170, 20, 150, 40).collidepoint(mx, my): editor_is_unfair = not editor_is_unfair; clicked_ui = True
                 elif pygame.Rect(WIDTH - 250, 20, 110, 40).collidepoint(mx, my): editor_snap = not editor_snap; clicked_ui = True
                     
-                for i, t in enumerate(['green', 'gold', 'bomb', 'rainbow', 'stat', 'boss', 'random', 'bumper']):
-                    if pygame.Rect(20, 100 + i*50, 40, 40).collidepoint(mx, my): editor_tool = t; clicked_ui = True
+                for i, (t_name, t_color) in enumerate([('green', GREEN), ('gold', GOLD), ('bomb', DARK_GRAY), ('rainbow', WHITE), ('stat', CYAN), ('boss', MAGENTA), ('random', GRAY), ('bumper', GRAY)]):
+                    if pygame.Rect(20, 100 + i*50, 40, 40).collidepoint(mx, my): editor_tool = t_name; clicked_ui = True
 
             elif state == "PLAY" and board_clear_timer == 0:
                 clicked_ui = False
                 if is_playtest:
                     if pygame.Rect(WIDTH//2 - 100, 20, 200, 50).collidepoint(mx, my):
                         cash = backup_cash + int(max(0, cash - backup_cash) * 0.01); pegs = copy.deepcopy(backup_pegs); bumpers = copy.deepcopy(backup_bumpers)
-                        balls.clear(); particles.clear(); is_playtest = False; state = playtest_return_state; clicked_ui = True
+                        balls.clear(); particles.clear(); pulse_rings.clear(); is_playtest = False; state = playtest_return_state; clicked_ui = True
                 else:
                     if WIDTH - 120 <= mx <= WIDTH - 20 and 20 <= my <= 60:
                         state = "MENU"; clicked_ui = True
@@ -619,15 +633,13 @@ while running:
                                     ability_inventory[a_name] -= 1
                                     for b in balls: b['revive_stack'].append('top')
                                     save_game()
-                                else:
-                                    active_ability_mode = None if active_ability_mode == a_name else a_name
+                                else: active_ability_mode = None if active_ability_mode == a_name else a_name
                             else: active_ability_mode = None
                             break
                             
                 if active_ability_mode and not clicked_ui and my > 80:
                     if ability_inventory.get(active_ability_mode, 0) > 0:
                         ability_inventory[active_ability_mode] -= 1
-                        
                         if active_ability_mode == "Midas Touch":
                             for p in pegs:
                                 if p['active'] and math.hypot(p['x']-mx, p['y']-my) < 150: p['type'] = 'gold'
@@ -639,22 +651,16 @@ while running:
                                 if active_p: 
                                     rp = random.choice(active_p); rp['active'] = False; grant_peg_reward(rp, 1.0, True, 'Regular')
                                     spawn_particles(rp['x'], rp['y'], YELLOW, 20, 5)
-                        elif active_ability_mode == "Black Hole":
-                            black_holes.append({'x': mx, 'y': my, 'life': FPS * 6, 'radius': 150})
+                        elif active_ability_mode == "Black Hole": black_holes.append({'x': mx, 'y': my, 'life': FPS * 6, 'radius': 150})
                         elif active_ability_mode == "Orbital Strike":
                             lasers.append({'x': mx, 'life': FPS})
                             for p in pegs:
-                                if p['active'] and abs(p['x'] - mx) < 60:
-                                    p['active'] = False; grant_peg_reward(p, 1.0, True, 'Regular')
-                        elif active_ability_mode == "Drone":
-                            drones.append({'x': mx, 'y': my, 'captured': 0})
+                                if p['active'] and abs(p['x'] - mx) < 60: p['active'] = False; grant_peg_reward(p, 1.0, True, 'Regular')
+                        elif active_ability_mode == "Drone": drones.append({'x': mx, 'y': my, 'captured': 0})
                         elif active_ability_mode == "Spawner":
                             for _ in range(10): spawn_ball(equipped_ball, mx + random.uniform(-20,20), my + random.uniform(-20,20), random.uniform(-5,5), random.uniform(-5,5))
-                        elif active_ability_mode == "Fire Cursor":
-                            fire_cursor_timer = FPS * 5
-                        elif active_ability_mode == "Vacuum Cursor":
-                            vacuum_cursor_timer = FPS * 5
-                            
+                        elif active_ability_mode == "Fire Cursor": fire_cursor_timer = FPS * 5
+                        elif active_ability_mode == "Vacuum Cursor": vacuum_cursor_timer = FPS * 5
                         active_ability_mode = None; save_game(); clicked_ui = True
                     else: active_ability_mode = None 
                 
@@ -686,17 +692,12 @@ while running:
                 elif 'tree' in btns and btns['tree'].collidepoint(mx, my): state = "PRESTIGE_TREE"; view_only_tree = True 
                 elif 'pres' in btns and btns['pres'].collidepoint(mx, my): state = "CONFIRM_PRESTIGE"
                 elif 'abil' in btns and btns['abil'].collidepoint(mx, my): state = "ABILITIES_MENU"
-                elif 'pow' in btns and btns['pow'].collidepoint(mx, my) and cash >= stats['upg_cost_power']:
-                    cash -= stats['upg_cost_power']; stats['level'] += 1; stats['gold_mult'] += 0.5; stats['bounce_bonus'] += 0.02; stats['upg_cost_power'] = int(stats['upg_cost_power'] * 1.5)
-                elif 'cap' in btns and btns['cap'].collidepoint(mx, my) and cash >= stats['upg_cost_balls']:
-                    cash -= stats['upg_cost_balls']; stats['max_balls'] += 1; stats['upg_cost_balls'] = int(stats['upg_cost_balls'] * 2.5)
-                elif 'auto' in btns and btns['auto'].collidepoint(mx, my) and cash >= stats['upg_cost_auto'] and stats['auto_drop_lvl'] < 4:
-                    cash -= stats['upg_cost_auto']; stats['auto_drop_lvl'] += 1; stats['upg_cost_auto'] = int(stats['upg_cost_auto'] * 3.0)
+                elif 'pow' in btns and btns['pow'].collidepoint(mx, my) and cash >= stats['upg_cost_power']: cash -= stats['upg_cost_power']; stats['level'] += 1; stats['gold_mult'] += 0.5; stats['bounce_bonus'] += 0.02; stats['upg_cost_power'] = int(stats['upg_cost_power'] * 1.5)
+                elif 'cap' in btns and btns['cap'].collidepoint(mx, my) and cash >= stats['upg_cost_balls']: cash -= stats['upg_cost_balls']; stats['max_balls'] += 1; stats['upg_cost_balls'] = int(stats['upg_cost_balls'] * 2.5)
+                elif 'auto' in btns and btns['auto'].collidepoint(mx, my) and cash >= stats['upg_cost_auto'] and stats['auto_drop_lvl'] < 4: cash -= stats['upg_cost_auto']; stats['auto_drop_lvl'] += 1; stats['upg_cost_auto'] = int(stats['upg_cost_auto'] * 3.0)
                 elif 'spec' in btns and btns['spec'].collidepoint(mx, my) and cash >= 20000: cash -= 20000; stats['special_unlocked'] = True; save_game()
-                elif 'top' in btns and btns['top'].collidepoint(mx, my) and stat_points >= stats.get('base_top_revives',0)+1 and stats.get('base_top_revives',0) < 5:
-                    stat_points -= stats.get('base_top_revives',0) + 1; stats['base_top_revives'] = stats.get('base_top_revives',0) + 1; save_game()
-                elif 'bot' in btns and btns['bot'].collidepoint(mx, my) and stat_points >= stats.get('base_bounce_revives',0)+1 and stats.get('base_bounce_revives',0) < 5:
-                    stat_points -= stats.get('base_bounce_revives',0) + 1; stats['base_bounce_revives'] = stats.get('base_bounce_revives',0) + 1; save_game()
+                elif 'top' in btns and btns['top'].collidepoint(mx, my) and stat_points >= stats.get('base_top_revives',0)+1 and stats.get('base_top_revives',0) < 5: stat_points -= stats.get('base_top_revives',0) + 1; stats['base_top_revives'] = stats.get('base_top_revives',0) + 1; save_game()
+                elif 'bot' in btns and btns['bot'].collidepoint(mx, my) and stat_points >= stats.get('base_bounce_revives',0)+1 and stats.get('base_bounce_revives',0) < 5: stat_points -= stats.get('base_bounce_revives',0) + 1; stats['base_bounce_revives'] = stats.get('base_bounce_revives',0) + 1; save_game()
                     
                 if 'cards' in btns:
                     for b_name, rect in btns['cards'].items():
@@ -705,8 +706,7 @@ while running:
                             elif cash >= BALL_TYPES[b_name]['cost']: cash -= BALL_TYPES[b_name]['cost']; ball_stats[b_name]['unlocked'] = True; equipped_ball = b_name
 
             elif state == "CONFIRM_DELETE":
-                if pygame.Rect(WIDTH//2 - 150, HEIGHT//2 + 50, 100, 50).collidepoint(mx, my):
-                    perform_data_nuke(); state = "MENU"
+                if pygame.Rect(WIDTH//2 - 150, HEIGHT//2 + 50, 100, 50).collidepoint(mx, my): perform_data_nuke(); state = "MENU"
                 elif pygame.Rect(WIDTH//2 + 50, HEIGHT//2 + 50, 100, 50).collidepoint(mx, my): state = "MENU"
 
             elif state == "ABILITIES_MENU":
@@ -804,7 +804,13 @@ while running:
 
     elif state == "LEADERBOARD":
         screen.fill(BLACK)
-        screen.blit(font_huge.render("GLOBAL LEADERBOARD", True, GOLD), (WIDTH//2 - 350, 50))
+        screen.blit(font_huge.render("GLOBAL LEADERBOARD", True, GOLD), (WIDTH//2 - 350, 40))
+        
+        # --- NEW UI: REWARDS TIMER ---
+        pygame.draw.rect(screen, DARK_BLUE, (WIDTH//2 - 250, 95, 500, 40), border_radius=5)
+        pygame.draw.rect(screen, CYAN, (WIDTH//2 - 250, 95, 500, 40), 2, border_radius=5)
+        screen.blit(font_med.render(f"Next Rewards In: {format_time(lb_time_remaining)}", True, WHITE), (WIDTH//2 - 160, 105))
+        
         draw_btn(screen, pygame.Rect(WIDTH - 150, 20, 130, 50), RED, "BACK", font_med, WHITE)
         pygame.draw.rect(screen, DARK_GRAY, (WIDTH//2 - 400, 150, 800, 500), border_radius=10)
         pygame.draw.rect(screen, GOLD, (WIDTH//2 - 400, 150, 800, 500), 4, border_radius=10)
@@ -872,7 +878,7 @@ while running:
         draw_btn(screen, pygame.Rect(WIDTH//2 + 170, 20, 150, 40), ORANGE if editor_is_unfair else DARK_GRAY, "Unfair Map", font_med, BLACK)
         draw_btn(screen, pygame.Rect(WIDTH - 250, 20, 110, 40), LIGHT_BLUE if editor_snap else GRAY, "Snap: ON" if editor_snap else "Snap: OFF", font_small, BLACK)
 
-        for i, t in enumerate(['green', 'gold', 'bomb', 'rainbow', 'stat', 'boss', 'random', 'bumper']):
+        for i, (t_name, t_color) in enumerate([('green', GREEN), ('gold', GOLD), ('bomb', DARK_GRAY), ('rainbow', WHITE), ('stat', CYAN), ('boss', MAGENTA), ('random', GRAY), ('bumper', GRAY)]):
             rect = pygame.Rect(20, 100 + i*50, 40, 40); pygame.draw.rect(screen, t_color, rect, border_radius=5)
             if editor_tool == t_name: pygame.draw.rect(screen, WHITE, rect, 3, border_radius=5)
             if t_name == 'random': screen.blit(font_med.render("?", True, BLACK), (rect.x+12, rect.y+10))
@@ -883,8 +889,7 @@ while running:
             px, py = (round(mx/25)*25, round(my/25)*25) if editor_snap else (mx, my)
             if py > max_y: py = max_y 
             if l_clk:
-                if editor_tool == 'bumper' and not any(math.hypot(b['x']-px, b['y']-py) < 25 for b in editor_bumpers):
-                    editor_bumpers.append({'x': px, 'y': py, 'radius': 25})
+                if editor_tool == 'bumper' and not any(math.hypot(b['x']-px, b['y']-py) < 25 for b in editor_bumpers): editor_bumpers.append({'x': px, 'y': py, 'radius': 25})
                 elif editor_tool != 'bumper' and not any(math.hypot(p['x']-px, p['y']-py) < 15 for p in editor_pegs):
                     editor_pegs.append({'x': float(px), 'y': float(py), 'type': editor_tool, 'active': True, 'on_fire': False, 'fire_timer': 0, 'is_random': editor_tool == 'random', **({'hp':5} if editor_tool=='boss' else {})})
             elif r_clk:
@@ -912,20 +917,16 @@ while running:
                         b_stat['auto_timer'] = 0; spawn_ball(b_name, random.choice(active_pegs)['x'] + random.uniform(-15, 15) if active_pegs and random.random() < 0.8 else random.randint(20, WIDTH-20), 20.0, random.uniform(-1, 1), 0.0)
         
         if fire_cursor_timer > 0:
-            fire_cursor_timer -= 1
-            pygame.draw.circle(screen, ORANGE, (mx, my), 75, 2)
+            fire_cursor_timer -= 1; pygame.draw.circle(screen, ORANGE, (mx, my), 75, 2)
             for p in pegs:
-                if p['active'] and math.hypot(p['x']-mx, p['y']-my) < 75 and not p.get('on_fire'):
-                    p['on_fire'] = True; p['fire_timer'] = FPS * 2
+                if p['active'] and math.hypot(p['x']-mx, p['y']-my) < 75 and not p.get('on_fire'): p['on_fire'] = True; p['fire_timer'] = FPS * 2
 
         if vacuum_cursor_timer > 0:
-            vacuum_cursor_timer -= 1
-            pygame.draw.circle(screen, LIGHT_BLUE, (mx, my), 200, 2)
+            vacuum_cursor_timer -= 1; pygame.draw.circle(screen, LIGHT_BLUE, (mx, my), 200, 2)
             for b in balls:
                 dx, dy = mx - b['x'], my - b['y']
                 dist = max(1, math.hypot(dx, dy))
-                if dist < 200:
-                    b['vx'] += (dx/dist) * 1.5; b['vy'] += (dy/dist) * 1.5 - b['grav']
+                if dist < 200: b['vx'] += (dx/dist) * 1.5; b['vy'] += (dy/dist) * 1.5 - b['grav']
 
         for d in drones[:]:
             if d['captured'] < 10 and balls:
@@ -943,35 +944,26 @@ while running:
                         try: balls.remove(closest_b)
                         except: pass
                         
-            pygame.draw.rect(screen, WHITE, (int(d['x'])-20, int(d['y'])-10, 40, 20))
-            pygame.draw.circle(screen, RED, (int(d['x']), int(d['y'])+10), 5)
+            pygame.draw.rect(screen, WHITE, (int(d['x'])-20, int(d['y'])-10, 40, 20)); pygame.draw.circle(screen, RED, (int(d['x']), int(d['y'])+10), 5)
             screen.blit(font_tiny.render(str(d['captured']), True, BLACK), (int(d['x'])-5, int(d['y'])-7))
 
         for bh in black_holes[:]:
-            bh['life'] -= 1
-            pygame.draw.circle(screen, PURPLE, (int(bh['x']), int(bh['y'])), 30)
-            pygame.draw.circle(screen, BLACK, (int(bh['x']), int(bh['y'])), 25)
+            bh['life'] -= 1; pygame.draw.circle(screen, PURPLE, (int(bh['x']), int(bh['y'])), 30); pygame.draw.circle(screen, BLACK, (int(bh['x']), int(bh['y'])), 25)
             for p in pegs:
                 if p['active']:
-                    dx, dy = bh['x'] - p['x'], bh['y'] - p['y']
-                    dist = math.hypot(dx, dy)
+                    dx, dy = bh['x'] - p['x'], bh['y'] - p['y']; dist = math.hypot(dx, dy)
                     if dist < bh['radius']:
                         p['x'] += (dx/dist) * 3; p['y'] += (dy/dist) * 3
-                        if dist < 30:
-                            p['active'] = False; grant_peg_reward(p, 2.0, False, 'Regular')
+                        if dist < 30: p['active'] = False; grant_peg_reward(p, 2.0, False, 'Regular')
             if bh['life'] <= 0: black_holes.remove(bh)
 
         for lz in lasers[:]:
-            lz['life'] -= 1
-            alpha = max(0, int((lz['life'] / FPS) * 255))
-            surf = pygame.Surface((120, HEIGHT), pygame.SRCALPHA)
-            surf.fill((255, 0, 0, alpha))
+            lz['life'] -= 1; alpha = max(0, int((lz['life'] / FPS) * 255)); surf = pygame.Surface((120, HEIGHT), pygame.SRCALPHA); surf.fill((255, 0, 0, alpha))
             screen.blit(surf, (int(lz['x']) - 60, 0))
             if lz['life'] <= 0: lasers.remove(lz)
             
         for lz in lightnings[:]:
-            lz['life'] -= 1
-            pygame.draw.line(screen, YELLOW, (lz['x1'], lz['y1']), (lz['x2'], lz['y2']), 3)
+            lz['life'] -= 1; pygame.draw.line(screen, YELLOW, (lz['x1'], lz['y1']), (lz['x2'], lz['y2']), 3)
             if lz['life'] <= 0: lightnings.remove(lz)
                         
         for b in balls[:]:
@@ -979,49 +971,61 @@ while running:
                 if b.get('lightning_strikes', 0) > 0:
                     b['lightning_timer'] -= 1
                     if b['lightning_timer'] <= 0:
-                        b['lightning_timer'] = FPS * 1.5
-                        b['lightning_strikes'] -= 1
-                        active_p = [p for p in pegs if p['active']]
+                        b['lightning_timer'] = FPS * 1.5; b['lightning_strikes'] -= 1; active_p = [p for p in pegs if p['active']]
                         if active_p:
-                            rp = random.choice(active_p)
-                            lightnings.append({'x1': b['x'], 'y1': b['y'], 'x2': rp['x'], 'y2': rp['y'], 'life': 10})
+                            rp = random.choice(active_p); lightnings.append({'x1': b['x'], 'y1': b['y'], 'x2': rp['x'], 'y2': rp['y'], 'life': 10})
                             rp['active'] = False; grant_peg_reward(rp, b['gold_mult'], False, 'Magic')
-                        if b['lightning_strikes'] <= 0:
-                            b['grav'] = BALL_TYPES['Magic']['base_grav']
-                else:
-                    b['grav'] = BALL_TYPES['Magic']['base_grav']
+                        if b['lightning_strikes'] <= 0: b['grav'] = BALL_TYPES['Magic']['base_grav']
+                else: b['grav'] = BALL_TYPES['Magic']['base_grav']
                         
             if b['type'] == 'Wood':
-                if random.random() < 0.05:
-                    cash += int(1 * b['gold_mult']); spawn_particles(b['x'], b['y'], GREEN, 1, 1.0)
+                if random.random() < 0.05: cash += int(1 * b['gold_mult'] * (2 if active_buffs.get('money_2x',0)>0 else 1)); spawn_particles(b['x'], b['y'], GREEN, 1, 1.0)
             
-            b['vy'] += b['grav']; b['x'] += b['vx']; b['y'] += b['vy']
+            b_rad = b.get('radius', BALL_RADIUS)
+            is_floating = b.get('anti_grav_timer', 0) > 0
+            
+            if is_floating:
+                b['anti_grav_timer'] -= 1
+                if b['type'] == 'Gravity':
+                    b['pulse_timer'] = b.get('pulse_timer', 0) - 1
+                    if b['pulse_timer'] <= 0:
+                        b['pulse_timer'] = FPS * 3
+                        # Spawn the expanding white pulse ring
+                        pulse_rings.append({'x': b['x'], 'y': b['y'], 'radius': b_rad, 'thickness': 4, 'alpha': 255})
+                        for ob in balls:
+                            # Don't infect other Gravity balls
+                            if ob != b and ob['type'] != 'Gravity' and math.hypot(b['x']-ob['x'], b['y']-ob['y']) < 150:
+                                ob['anti_grav_timer'] = max(ob.get('anti_grav_timer', 0), FPS * 5)
+            else:
+                b['vy'] += b['grav'] 
+                
+            b['x'] += b['vx']; b['y'] += b['vy']
             speed = math.hypot(b['vx'], b['vy'])
             if speed > 18.0: b['vx'] = (b['vx'] / speed) * 18.0; b['vy'] = (b['vy'] / speed) * 18.0
-            rad = b.get('radius', BALL_RADIUS)
             
-            if b['x'] - rad < 0 or b['x'] + rad > WIDTH:
-                b['x'] = rad if b['x'] - rad < 0 else WIDTH - rad; b['vx'] *= -b['bounce']; bounce_sound.play()
-                if b['type'] == 'Regular': cash += int(5 * (0.01 if is_playtest else 1))
+            if b['x'] - b_rad < 0 or b['x'] + b_rad > WIDTH:
+                b['x'] = b_rad if b['x'] - b_rad < 0 else WIDTH - b_rad; b['vx'] *= -b['bounce']; bounce_sound.play()
+                if b['type'] == 'Regular': cash += int(5 * (0.01 if is_playtest else 1) * (2 if active_buffs.get('money_2x',0)>0 else 1))
             
-            if b['y'] - rad > HEIGHT: 
-                if 'top' in b['revive_stack']:
-                    b['revive_stack'].remove('top'); b['y'] = 40; b['vy'] = 0
-                elif 'bounce' in b['revive_stack']:
-                    b['revive_stack'].remove('bounce'); b['vy'] = -15; b['y'] = HEIGHT - rad
-                else:
-                    balls.remove(b)
-                continue 
+            if is_floating:
+                if b['y'] - b_rad < 80: b['y'] = 80 + b_rad; b['vy'] *= -b['bounce']; bounce_sound.play()
+                elif b['y'] + b_rad > HEIGHT: b['y'] = HEIGHT - b_rad; b['vy'] *= -b['bounce']; bounce_sound.play()
+            else:
+                if b['y'] - b_rad > HEIGHT: 
+                    if 'top' in b['revive_stack']: b['revive_stack'].remove('top'); b['y'] = 80; b['vy'] = 0
+                    elif 'bounce' in b['revive_stack']: b['revive_stack'].remove('bounce'); b['vy'] = -15; b['y'] = HEIGHT - b_rad
+                    else: balls.remove(b)
+                    continue 
             
             for bmp in bumpers:
                 dx, dy = b['x'] - bmp['x'], b['y'] - bmp['y']; dist = math.hypot(dx, dy)
-                if dist < rad + bmp['radius']:
+                if dist < b_rad + bmp['radius']:
                     bounce_sound.play(); nx, ny = dx / max(dist,0.1), dy / max(dist,0.1)
-                    b['x'] += nx * ((rad + bmp['radius']) - dist); b['y'] += ny * ((rad + bmp['radius']) - dist)
+                    b['x'] += nx * ((b_rad + bmp['radius']) - dist); b['y'] += ny * ((b_rad + bmp['radius']) - dist)
                     dot = b['vx'] * nx + b['vy'] * ny; b['vx'] = (b['vx'] - 2 * dot * nx) * b['bounce']; b['vy'] = (b['vy'] - 2 * dot * ny) * b['bounce']
 
             for peg in pegs:
-                if peg['active'] and math.hypot(b['x'] - peg['x'], b['y'] - peg['y']) < rad + (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS):
+                if peg['active'] and math.hypot(b['x'] - peg['x'], b['y'] - peg['y']) < b_rad + (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS):
                     if b['type'] == 'Taco':
                         bite_sound.play(); b['hits_taken'] += 1
                         if peg['type'] == 'boss':
@@ -1053,7 +1057,7 @@ while running:
                                 if math.hypot(peg['x']-np['x'], peg['y']-np['y']) < 60 and not np.get('on_fire'): np['on_fire'] = True; np['fire_timer'] = FPS * 2
                                 
                     bounce_sound.play(); nx, ny = (b['x'] - peg['x']) / max(math.hypot(b['x'] - peg['x'], b['y'] - peg['y']),0.1), (b['y'] - peg['y']) / max(math.hypot(b['x'] - peg['x'], b['y'] - peg['y']),0.1)
-                    b['x'] += nx * ((rad + (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS)) - math.hypot(b['x'] - peg['x'], b['y'] - peg['y'])); b['y'] += ny * ((rad + (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS)) - math.hypot(b['x'] - peg['x'], b['y'] - peg['y']))
+                    b['x'] += nx * ((b_rad + (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS)) - math.hypot(b['x'] - peg['x'], b['y'] - peg['y'])); b['y'] += ny * ((b_rad + (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS)) - math.hypot(b['x'] - peg['x'], b['y'] - peg['y']))
                     dot = b['vx'] * nx + b['vy'] * ny; b['vx'] = (b['vx'] - 2 * dot * nx) * b['bounce']; b['vy'] = (b['vy'] - 2 * dot * ny) * b['bounce']
                     break 
 
@@ -1061,8 +1065,18 @@ while running:
             p['x'] += p['vx']; p['y'] += p['vy']; p['life'] -= 1; p['radius'] = max(0, p['radius'] - 0.1)
             if p['life'] <= 0: particles.remove(p)
 
+        # Draw expanding pulse rings
+        for r in pulse_rings[:]:
+            r['radius'] += 4
+            r['alpha'] -= 7
+            if r['alpha'] <= 0: pulse_rings.remove(r)
+            else:
+                ring_surf = pygame.Surface((int(r['radius']*2 + 10), int(r['radius']*2 + 10)), pygame.SRCALPHA)
+                pygame.draw.circle(ring_surf, (255, 255, 255, max(0, int(r['alpha']))), (int(r['radius']+5), int(r['radius']+5)), int(r['radius']), r['thickness'])
+                screen.blit(ring_surf, (int(r['x'] - r['radius'] - 5), int(r['y'] - r['radius'] - 5)))
+
         if all(not p['active'] for p in pegs) and len(pegs) > 0 and board_clear_timer == 0:
-            board_clear_timer = FPS * 2; cash += int(100 * (0.01 if is_playtest else 1)); boards_cleared += 1
+            board_clear_timer = FPS * 2; cash += int(100 * (0.01 if is_playtest else 1) * (2 if active_buffs.get('money_2x',0)>0 else 1)); boards_cleared += 1
             for _ in range(10): spawn_particles(random.randint(200, WIDTH-200), random.randint(200, HEIGHT-200), random.choice([GOLD, CYAN, RED, GREEN]), count=30, speed=8.0)
         
         for bmp in bumpers: pygame.draw.polygon(screen, GRAY, [(bmp['x'], bmp['y'] - bmp['radius']), (bmp['x'] + bmp['radius'], bmp['y']), (bmp['x'], bmp['y'] + bmp['radius']), (bmp['x'] - bmp['radius'], bmp['y'])]); pygame.draw.polygon(screen, WHITE, [(bmp['x'], bmp['y'] - bmp['radius']), (bmp['x'] + bmp['radius'], bmp['y']), (bmp['x'], bmp['y'] + bmp['radius']), (bmp['x'] - bmp['radius'], bmp['y'])], 2)
@@ -1095,6 +1109,7 @@ while running:
 
             if 'bounce' in b['revive_stack']: pygame.draw.circle(screen, GREEN, (bx, by), b_rad + 3, 2)
             if 'top' in b['revive_stack']: pygame.draw.circle(screen, CYAN, (bx, by), b_rad + 6, 2)
+            if b.get('anti_grav_timer', 0) > 0: pygame.draw.circle(screen, WHITE, (bx, by), b_rad + 4, 1)
 
         if is_playtest:
             draw_btn(screen, pygame.Rect(WIDTH//2 - 100, 20, 200, 50), RED, "END PLAYTEST", font_med, WHITE); screen.blit(font_small.render("(Earns 1% Cash)", True, GRAY), (WIDTH//2 - 60, 75))
@@ -1109,6 +1124,10 @@ while running:
         screen.blit(font_large.render(f"Cash: ${cash}", True, WHITE), (20, 10)); screen.blit(font_med.render(f"PP: {prestige_points}", True, BRONZE), (20, 45)); screen.blit(font_med.render(f"SP: {stat_points}", True, CYAN), (20, 75))
         screen.blit(font_med.render(f"{equipped_ball} Ammo: {max(0, ball_stats[equipped_ball]['max_balls'] - len([b for b in balls if b['is_manual'] and b['type'] == equipped_ball]))} / {ball_stats[equipped_ball]['max_balls']}", True, WHITE), (20, 105))
         
+        buff_y = 140
+        if active_buffs.get('money_2x', 0) > 0: screen.blit(font_med.render(f"2X CASH: {format_time(active_buffs['money_2x'])}", True, GOLD), (20, buff_y)); buff_y += 30
+        if active_buffs.get('pp_2x', 0) > 0: screen.blit(font_med.render(f"2X PP: {format_time(active_buffs['pp_2x'])}", True, PURPLE), (20, buff_y))
+            
         if equipped_abilities:
             for i, a_name in enumerate(equipped_abilities):
                 a_data = ABILITIES[a_name]
@@ -1120,17 +1139,23 @@ while running:
             if board_clear_timer == 0:
                 if is_playtest: pegs = copy.deepcopy(backup_pegs); bumpers = copy.deepcopy(backup_bumpers)
                 else: create_random_board()
-                balls.clear(); particles.clear()
+                balls.clear(); particles.clear(); pulse_rings.clear()
 
     elif state == "MENU":
         draw_main_menu()
         if gift_popup_msg:
             screen.blit(dim_overlay, (0, 0))
-            pop_rect = pygame.Rect(WIDTH//2 - 200, HEIGHT//2 - 100, 400, 200)
+            pop_rect = pygame.Rect(WIDTH//2 - 300, HEIGHT//2 - 100, 600, 200)
             pygame.draw.rect(screen, BLACK, pop_rect, border_radius=10)
             pygame.draw.rect(screen, GOLD, pop_rect, 4, border_radius=10)
-            screen.blit(font_large.render("GIFT RECEIVED!", True, CYAN), (WIDTH//2 - 130, HEIGHT//2 - 60))
-            screen.blit(font_med.render(gift_popup_msg, True, WHITE), (WIDTH//2 - 160, HEIGHT//2))
+            screen.blit(font_large.render("GIFT RECEIVED!", True, CYAN), (WIDTH//2 - 130, HEIGHT//2 - 80))
+            
+            lines = gift_popup_msg.split('\n')
+            for i, line in enumerate(lines):
+                txt = font_med.render(line, True, WHITE)
+                screen.blit(txt, (WIDTH//2 - txt.get_width()//2, HEIGHT//2 - 20 + (i*30)))
+                
+            if pygame.Rect(WIDTH//2 - 75, HEIGHT//2 + 50, 150, 40).collidepoint(mx, my): gift_popup_msg = ""
             draw_btn(screen, pygame.Rect(WIDTH//2 - 75, HEIGHT//2 + 50, 150, 40), GREEN, "AWESOME", font_med, BLACK)
 
     elif state == "ABILITIES_MENU":

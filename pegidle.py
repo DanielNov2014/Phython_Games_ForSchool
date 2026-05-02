@@ -16,7 +16,7 @@ current_user = ""; current_pass = ""
 GREEN = (50, 200, 50); GOLD = (255, 215, 0); WHITE = (255, 255, 255); BLACK = (20, 20, 30); DARK_BG = (25, 30, 40) 
 RED = (255, 50, 50); GRAY = (150, 150, 150); DARK_GRAY = (60, 60, 60); BROWN = (139, 69, 19); BRONZE = (205, 127, 50)    
 TAN = (210, 180, 140); CYAN = (50, 255, 255); LIGHT_BLUE = (100, 200, 255); ORANGE = (255, 140, 0); PURPLE = (150, 50, 200)
-MAROON = (128, 0, 0); DARK_BLUE = (30, 40, 80); MAGENTA = (255, 0, 255); YELLOW = (255, 255, 0)
+MAROON = (128, 0, 0); DARK_BLUE = (30, 40, 80); MAGENTA = (255, 0, 255); YELLOW = (255, 255, 0); PINK = (255, 105, 180)
 
 dim_overlay = pygame.Surface((WIDTH, HEIGHT)); dim_overlay.set_alpha(200); dim_overlay.fill(BLACK)
 font_huge = pygame.font.SysFont(None, 80); font_large = pygame.font.SysFont(None, 48)
@@ -47,12 +47,39 @@ BALL_TYPES = {
     "Magic":   {"color": PURPLE, "base_grav": 0.25, "base_bounce": 0.90, "cost": 500000, "desc": "Floats & Zaps 2 times"},
     "Wood":    {"color": BROWN, "base_grav": 0.30, "base_bounce": 0.65, "cost": 1000000, "desc": "Passively grows money mid-air"},
     "Taco":    {"color": YELLOW, "base_grav": 0.30, "base_bounce": 0.60, "cost": 15000000, "desc": "Eats 3 pegs at once. Breaks in 2-4 hits!"},
-    "Gravity": {"color": LIGHT_BLUE, "base_grav": 0.25, "base_bounce": 0.95, "cost": 50000000, "desc": "Floats for 10s, shares 0G. 3x on Gold!"},
-    "Shrapnel": {"color": GRAY, "base_grav": 0.30, "base_bounce": 0.60, "cost": 0, "desc": "", "hidden": True} 
+    "Gravity": {"color": LIGHT_BLUE, "base_grav": 0.25, "base_bounce": 0.95, "cost": 50000000, "desc": "Floats for 15s, shares 0G. 5x on Gold!"},
+    "Sucking": {"color": PINK, "base_grav": 0.25, "base_bounce": 0.75, "cost": 150000000, "desc": "Sucks 3-7 pegs every 2.5s. 1.5x on Gold!"},
+    "Shrapnel": {"color": GRAY, "base_grav": 0.30, "base_bounce": 0.60, "cost": 0, "desc": "", "hidden": True},
+    "Big_Taco": {"color": YELLOW, "base_grav": 0.40, "base_bounce": 0.0, "cost": 0, "desc": "", "hidden": True},
+    "Buffed_Taco": {"color": ORANGE, "base_grav": 0.30, "base_bounce": 0.85, "cost": 0, "desc": "", "hidden": True}
 }
-ABILITIES = {"Fire Cursor": {"desc": "5s Buff: Hold click to burn pegs", "color": ORANGE, "rarity": "Common"}, "Vacuum Cursor": {"desc": "5s Buff: Hold click to juggle balls!", "color": LIGHT_BLUE, "rarity": "Common"}, "Thunder Cloud": {"desc": "Click to blast 5 random pegs!", "color": DARK_GRAY, "rarity": "Rare"}, "Bounce Revive": {"desc": "Instantly gives active balls an extra bounce!", "color": GREEN, "rarity": "Rare"}, "Spawner": {"desc": "Click to spawn 10 of equipped ball!", "color": GREEN, "rarity": "Rare"}, "Midas Touch": {"desc": "Click to turn an area of pegs into Gold!", "color": GOLD, "rarity": "Epic"}, "Starfall": {"desc": "Instantly drops 10 bouncy balls!", "color": LIGHT_BLUE, "rarity": "Epic"}, "Drone": {"desc": "Drone hunts and catches balls. Click to drop!", "color": WHITE, "rarity": "Epic"}, "Revive Wave": {"desc": "Gives active balls a Top Revive!", "color": CYAN, "rarity": "Legendary"}, "Black Hole": {"desc": "Sucks pegs for 6s. Pegs eaten pay 2x!", "color": PURPLE, "rarity": "Legendary"}, "Orbital Strike": {"desc": "Blasts a vertical column with a laser!", "color": RED, "rarity": "Legendary"}}
-RARITY_COLORS = {'Common': GRAY, 'Rare': LIGHT_BLUE, 'Epic': PURPLE, 'Legendary': GOLD}
-CRATES = {"Basic Crate": {"cost": 2000, "rolls": 3, "odds": {"Legendary": 0.02, "Epic": 0.08, "Rare": 0.30, "Common": 0.60}, "color": BROWN}, "Advanced Crate": {"cost": 10000, "rolls": 6, "odds": {"Legendary": 0.08, "Epic": 0.20, "Rare": 0.42, "Common": 0.30}, "color": DARK_GRAY}, "Premium Crate": {"cost": 40000, "rolls": 10, "odds": {"Legendary": 0.25, "Epic": 0.40, "Rare": 0.25, "Common": 0.10}, "color": GOLD}}
+
+ABILITIES = {
+    "Fire Cursor": {"desc": "5s Buff: Hold click to burn pegs", "color": ORANGE, "rarity": "Common"}, 
+    "Vacuum Cursor": {"desc": "5s Buff: Hold click to juggle balls!", "color": LIGHT_BLUE, "rarity": "Common"}, 
+    "Thunder Cloud": {"desc": "Click to blast 5 random pegs!", "color": DARK_GRAY, "rarity": "Rare"}, 
+    "Bounce Revive": {"desc": "Instantly gives active balls an extra bounce!", "color": GREEN, "rarity": "Rare"}, 
+    "Spawner": {"desc": "Click to spawn 10 of equipped ball!", "color": GREEN, "rarity": "Rare"}, 
+    "Portal": {"desc": "3s Zone: Teleports balls to exit", "color": PURPLE, "rarity": "Rare"},
+    "Midas Touch": {"desc": "Click to turn an area of pegs into Gold!", "color": GOLD, "rarity": "Epic"}, 
+    "Starfall": {"desc": "Instantly drops 10 bouncy balls!", "color": LIGHT_BLUE, "rarity": "Epic"}, 
+    "Drone": {"desc": "Drone hunts and catches balls. Click to drop!", "color": WHITE, "rarity": "Epic"}, 
+    "Rewind": {"desc": "4s Zone: Rewinds balls back in time!", "color": GRAY, "rarity": "Epic"},
+    "Revive Wave": {"desc": "Gives active balls a Top Revive!", "color": CYAN, "rarity": "Legendary"}, 
+    "Black Hole": {"desc": "Sucks pegs for 6s. Pegs eaten pay 2x!", "color": PURPLE, "rarity": "Legendary"}, 
+    "Orbital Strike": {"desc": "Blasts a vertical column with a laser!", "color": RED, "rarity": "Legendary"},
+    "Time Slow": {"desc": "10s Zone: Massively slows balls inside", "color": DARK_BLUE, "rarity": "Legendary"},
+    "Border": {"desc": "7s Buff: Solid floor saves falling balls!", "color": TAN, "rarity": "Legendary"},
+    "Raining Tacos": {"desc": "Mythical: Rains Exploding Buffed Tacos for 5 Boards!", "color": PINK, "rarity": "Mythical"}
+}
+RARITY_COLORS = {'Common': GRAY, 'Rare': LIGHT_BLUE, 'Epic': PURPLE, 'Legendary': GOLD, 'Mythical': PINK}
+
+CRATES = {
+    "Basic Crate": {"cost": 2000, "rolls": 3, "odds": {"Mythical": 0.0, "Legendary": 0.02, "Epic": 0.08, "Rare": 0.30, "Common": 0.60}, "color": BROWN}, 
+    "Advanced Crate": {"cost": 10000, "rolls": 6, "odds": {"Mythical": 0.001, "Legendary": 0.08, "Epic": 0.20, "Rare": 0.42, "Common": 0.299}, "color": DARK_GRAY}, 
+    "Premium Crate": {"cost": 40000, "rolls": 10, "odds": {"Mythical": 0.01, "Legendary": 0.24, "Epic": 0.40, "Rare": 0.25, "Common": 0.10}, "color": GOLD}
+}
+
 PRESTIGE_DEFS = {'starter_cash': {'name': 'Starter Money', 'desc': '+$1000 on Prestige', 'base_cost': 5, 'max_lvl': 10}, 'extra_rainbow': {'name': 'More Rainbows', 'desc': '+1 Rainbow Peg', 'base_cost': 15, 'max_lvl': 5}, 'bomb_chance': {'name': 'Bomb Chance', 'desc': '+2% Bomb spawn rate', 'base_cost': 10, 'max_lvl': 10}, 'extra_prestige': {'name': 'Prestige Pegs', 'desc': '+1 Brown Peg', 'base_cost': 12, 'max_lvl': 5}, 'gold_chance': {'name': 'Gold Rush', 'desc': '+5% Gold Peg rate', 'base_cost': 10, 'max_lvl': 10}, 'multishot': {'name': 'Multishot', 'desc': '+1 Ball per manual shot', 'base_cost': 25, 'max_lvl': 5}, 'stat_pegs': {'name': 'Stat Pegs', 'desc': '+10% Stat Peg rate', 'base_cost': 15, 'max_lvl': 5}}
 
 state = "LOGIN"; view_only_tree = False; cash = 0; prestige_points = 0; stat_points = 0; boards_cleared = 0
@@ -68,8 +95,11 @@ admin_input_user = ""; admin_input_amount = ""; admin_active_input = "user"; adm
 auth_message = ""; is_authenticating = False; gift_popup_msg = ""
 last_save_time = time.time(); offline_rewards = {}; anim_cash = 0.0; anim_pp = 0.0; anim_sp = 0.0; crate_results_display = []
 p_upgrades = {k: 0 for k in PRESTIGE_DEFS.keys()}
+fire_cursor_timer = 0; vacuum_cursor_timer = 0; active_buffs = {'money_2x': 0, 'pp_2x': 0}; lb_time_remaining = 0; bottom_wall_timer = 0
+ability_scroll = 0
+
 balls = []; pegs = []; bumpers = []; particles = []; lightnings = []; clouds = []; black_holes = []; lasers = []; drones = []; pulse_rings = []
-fire_cursor_timer = 0; vacuum_cursor_timer = 0; active_buffs = {'money_2x': 0, 'pp_2x': 0}; lb_time_remaining = 0
+time_zones = []; rewind_zones = []; portals = []; taco_clouds = []
 
 CANNON_POS = (WIDTH // 2, 40); PEG_RADIUS = 12; BALL_RADIUS = 10; board_clear_timer = 0; event_text_str = ""; event_timer = 0
 
@@ -92,18 +122,38 @@ def draw_btn(surface, rect, color, text, font, text_color=BLACK, outline=True):
     txt_surf = font.render(text, True, text_color)
     surface.blit(txt_surf, (rect.centerx - txt_surf.get_width()//2, rect.centery - txt_surf.get_height()//2))
 
+def draw_taco(surface, x, y, scale, angle):
+    taco_surf = pygame.Surface((60, 60), pygame.SRCALPHA)
+    pygame.draw.polygon(taco_surf, GOLD, [(5, 30), (55, 30), (45, 55), (15, 55)])
+    pygame.draw.polygon(taco_surf, BROWN, [(10, 25), (50, 25), (45, 30), (15, 30)])
+    pygame.draw.polygon(taco_surf, GREEN, [(15, 20), (45, 20), (40, 25), (20, 25)])
+    pygame.draw.rect(taco_surf, RED, (20, 18, 6, 6))
+    pygame.draw.rect(taco_surf, RED, (35, 18, 6, 6))
+    scaled = pygame.transform.scale(taco_surf, (int(60*scale), int(60*scale)))
+    rotated = pygame.transform.rotate(scaled, angle)
+    rotated.set_alpha(160)
+    surface.blit(rotated, (x - rotated.get_width()//2, y - rotated.get_height()//2))
+
 def get_rainbow_color():
     t = pygame.time.get_ticks() / 300.0; return (int((math.sin(t)+1)*127.5), int((math.sin(t+2)+1)*127.5), int((math.sin(t+4)+1)*127.5))
 
 def draw_peg_visual(surface, x, y, p_type, hp=0, is_fire=False):
-    color = ORANGE if is_fire else (get_rainbow_color() if p_type == 'rainbow' else (GOLD if p_type == 'gold' else (DARK_GRAY if p_type == 'bomb' else (BROWN if p_type == 'prestige' else (MAGENTA if p_type == 'boss' else (CYAN if p_type == 'stat' else (GRAY if p_type == 'random' else GREEN)))))))
-    rad = PEG_RADIUS * 1.5 if p_type == 'boss' else PEG_RADIUS
+    color = ORANGE if is_fire else (get_rainbow_color() if p_type == 'rainbow' else (GOLD if p_type == 'gold' else (DARK_GRAY if p_type == 'bomb' else (BROWN if p_type == 'prestige' else (MAGENTA if p_type == 'boss' else (RED if p_type == 'mega_boss' else (CYAN if p_type == 'stat' else (GRAY if p_type == 'random' else GREEN))))))))
+    rad = PEG_RADIUS * 1.5 if p_type == 'boss' else (60 if p_type == 'mega_boss' else PEG_RADIUS)
+    
+    if p_type == 'mega_boss':
+        pygame.draw.circle(surface, RED, (int(x), int(y)), int(rad + math.sin(pygame.time.get_ticks()/150.0)*5))
+        pygame.draw.circle(surface, BLACK, (int(x), int(y)), int(rad), 4)
+        hp_txt = font_large.render(str(hp), True, WHITE); surface.blit(hp_txt, (x - hp_txt.get_width()//2, y - hp_txt.get_height()//2))
+        return
+
     pygame.draw.circle(surface, color, (int(x), int(y)), int(rad)); pygame.draw.circle(surface, BLACK, (int(x), int(y)), int(rad), 1) 
     if p_type == 'bomb': pygame.draw.circle(surface, RED, (int(x), int(y)), int(rad*0.4))
     elif p_type in ['prestige', 'stat', 'boss']: pygame.draw.circle(surface, WHITE, (int(x), int(y)), int(rad*0.8), 2)
     elif p_type == 'rainbow': pygame.draw.circle(surface, WHITE, (int(x), int(y)), int(rad*0.7), 2)
     else: pygame.draw.circle(surface, WHITE, (int(x), int(y)), int(rad*0.7), 1)
     pygame.draw.circle(surface, WHITE, (int(x - rad*0.35), int(y - rad*0.35)), max(2, int(rad*0.2))) 
+    
     if p_type == 'boss':
         hp_txt = font_tiny.render(str(hp), True, WHITE); surface.blit(hp_txt, (x - hp_txt.get_width()//2, y - hp_txt.get_height()//2))
     elif p_type == 'random':
@@ -116,7 +166,7 @@ def send_to_gas(payload):
     except Exception as e: return {"success": False, "message": f"Network Error: {str(e)}"}
 
 def get_save_data_dict():
-    return {'cash': cash, 'prestige_points': prestige_points, 'stat_points': stat_points, 'equipped_ball': equipped_ball, 'equipped_abilities': equipped_abilities, 'ability_inventory': ability_inventory, 'boards_cleared': boards_cleared, 'ball_stats': ball_stats, 'p_upgrades': p_upgrades, 'custom_maps_unlocked': custom_maps_unlocked, 'last_save_time': time.time(), 'active_buffs': active_buffs}
+    return {'cash': cash, 'prestige_points': stat_points, 'equipped_ball': equipped_ball, 'equipped_abilities': equipped_abilities, 'ability_inventory': ability_inventory, 'boards_cleared': boards_cleared, 'ball_stats': ball_stats, 'p_upgrades': p_upgrades, 'custom_maps_unlocked': custom_maps_unlocked, 'last_save_time': time.time(), 'active_buffs': active_buffs}
 
 def apply_save_data(data):
     global cash, prestige_points, stat_points, equipped_ball, equipped_abilities, ability_inventory, boards_cleared, ball_stats, p_upgrades, last_save_time, custom_maps_unlocked, active_buffs
@@ -294,6 +344,17 @@ def l_diamond(): return [(c*40 + WIDTH//2 - r*20, 150 + r*35) for r in range(7) 
 def create_random_board():
     global bumpers, lightnings, clouds, black_holes, lasers
     bumpers.clear(); lightnings.clear(); clouds.clear(); black_holes.clear(); lasers.clear()
+    
+    # --- BOSS FIGHT LOGIC ---
+    if boards_cleared > 0 and (boards_cleared + 1) % 50 == 0:
+        boss_hp = 60 if boards_cleared < 50 else 200
+        pegs.append({'x': WIDTH//2, 'y': HEIGHT//2 - 50, 'type': 'mega_boss', 'active': True, 'hp': boss_hp, 'spawn_timer': FPS * 3})
+        for angle in range(0, 360, 30):
+            px = WIDTH//2 + math.cos(math.radians(angle)) * 130
+            py = HEIGHT//2 - 50 + math.sin(math.radians(angle)) * 130
+            pegs.append({'x': px, 'y': py, 'type': 'green', 'active': True, 'on_fire': False, 'fire_timer': 0})
+        return
+
     loaded = False
     if approved_maps_list and random.random() < 0.3: 
         loaded = load_custom_map(random.choice(approved_maps_list))
@@ -335,10 +396,10 @@ def check_offline_progress():
                     anim_cash = 0.0; anim_pp = 0.0; anim_sp = 0.0; state = "OFFLINE_SCREEN"
 
 def perform_prestige_reset():
-    global cash, stat_points, ball_stats, equipped_ball, equipped_abilities, active_ability_mode, balls, boards_cleared, particles, lightnings, clouds, black_holes, lasers, drones, fire_cursor_timer, vacuum_cursor_timer, pulse_rings
+    global cash, stat_points, ball_stats, equipped_ball, equipped_abilities, active_ability_mode, balls, boards_cleared, particles, lightnings, clouds, black_holes, lasers, drones, fire_cursor_timer, vacuum_cursor_timer, pulse_rings, time_zones, rewind_zones, portals, taco_clouds
     cash = p_upgrades['starter_cash'] * 1000; boards_cleared = 0; equipped_ball = "Regular"; equipped_abilities = []; active_ability_mode = None
     fire_cursor_timer = 0; vacuum_cursor_timer = 0
-    balls.clear(); particles.clear(); lightnings.clear(); clouds.clear(); black_holes.clear(); lasers.clear(); drones.clear(); pulse_rings.clear()
+    balls.clear(); particles.clear(); lightnings.clear(); clouds.clear(); black_holes.clear(); lasers.clear(); drones.clear(); pulse_rings.clear(); time_zones.clear(); rewind_zones.clear(); portals.clear(); taco_clouds.clear()
     for b_stat in ball_stats.values():
         stat_points += (b_stat.get('base_top_revives', 0) * (b_stat.get('base_top_revives', 0) + 1)) // 2
         stat_points += (b_stat.get('base_bounce_revives', 0) * (b_stat.get('base_bounce_revives', 0) + 1)) // 2
@@ -346,13 +407,13 @@ def perform_prestige_reset():
     create_random_board(); save_game()
 
 def perform_data_nuke():
-    global cash, prestige_points, stat_points, boards_cleared, equipped_ball, ability_inventory, equipped_abilities, active_ability_mode, p_upgrades, ball_stats, custom_maps_unlocked, fire_cursor_timer, vacuum_cursor_timer, balls, particles, lightnings, clouds, black_holes, lasers, drones, pulse_rings
+    global cash, prestige_points, stat_points, boards_cleared, equipped_ball, ability_inventory, equipped_abilities, active_ability_mode, p_upgrades, ball_stats, custom_maps_unlocked, fire_cursor_timer, vacuum_cursor_timer, balls, particles, lightnings, clouds, black_holes, lasers, drones, pulse_rings, time_zones, rewind_zones, portals, taco_clouds
     cash = 0; prestige_points = 0; stat_points = 0; boards_cleared = 0
     equipped_ball = "Regular"; ability_inventory = {k: 0 for k in ABILITIES.keys()}; equipped_abilities = []; active_ability_mode = None
     p_upgrades = {k: 0 for k in PRESTIGE_DEFS.keys()}; custom_maps_unlocked = False
     ball_stats = {name: get_default_ball_stats(unlocked=(name=="Regular")) for name in BALL_TYPES.keys()}
     fire_cursor_timer = 0; vacuum_cursor_timer = 0
-    balls.clear(); particles.clear(); lightnings.clear(); clouds.clear(); black_holes.clear(); lasers.clear(); drones.clear(); pulse_rings.clear()
+    balls.clear(); particles.clear(); lightnings.clear(); clouds.clear(); black_holes.clear(); lasers.clear(); drones.clear(); pulse_rings.clear(); time_zones.clear(); rewind_zones.clear(); portals.clear(); taco_clouds.clear()
     create_random_board(); save_game(sync=True)
 
 def generate_tree_nodes():
@@ -386,16 +447,23 @@ def spawn_ball(ball_type, x, y, vx, vy, is_manual=False, inherited_mult=None):
     if ball_type == 'Maroon': revive_stack.append('bounce')
     elif ball_type == 'Hoops': revive_stack.append('top')
     
-    b_dict = {'type': ball_type, 'is_manual': is_manual, 'x': x, 'y': y, 'vx': vx, 'vy': vy, 'color': b['color'], 'grav': b['base_grav'], 'bounce': min(0.98, b['base_bounce'] + stats['bounce_bonus']), 'radius': 4 if ball_type == "Shrapnel" else BALL_RADIUS, 'gold_mult': inherited_mult if inherited_mult else stats['gold_mult'], 'revive_stack': revive_stack}
+    b_rad = BALL_RADIUS
+    
+    b_dict = {'type': ball_type, 'is_manual': is_manual, 'x': x, 'y': y, 'vx': vx, 'vy': vy, 'color': b['color'], 'grav': b['base_grav'], 'bounce': min(0.98, b['base_bounce'] + stats['bounce_bonus']), 'radius': b_rad, 'gold_mult': inherited_mult if inherited_mult else stats['gold_mult'], 'revive_stack': revive_stack, 'history': []}
     if ball_type == 'Magic': b_dict.update({'grav': 0.0, 'lightning_timer': FPS * 1.5, 'vy': 0.0, 'lightning_strikes': 2})
     elif ball_type == 'Taco': b_dict.update({'max_hits': random.randint(2, 4), 'hits_taken': 0, 'radius': 14})
-    elif ball_type == 'Gravity': b_dict.update({'anti_grav_timer': FPS * 10, 'pulse_timer': FPS * 3})
+    elif ball_type == 'Gravity': b_dict.update({'anti_grav_timer': FPS * 15, 'pulse_timer': FPS * 3})
+    elif ball_type == 'Sucking': b_dict.update({'suck_timer': int(FPS * 2.5)})
+    elif ball_type == 'Big_Taco': b_dict.update({'radius': 40, 'max_hits': 1, 'hits_taken': 0})
+    elif ball_type == 'Buffed_Taco': b_dict.update({'max_hits': 20, 'hits_taken': 0, 'gold_mult': b_dict['gold_mult'] * 5.0, 'bounce': 1.1, 'radius': 15})
+    elif ball_type == 'Shrapnel': b_dict.update({'radius': 4})
+
     balls.append(b_dict)
 
 def grant_peg_reward(peg, gold_mult, is_direct_hit=True, b_type=None):
     global cash, prestige_points, stat_points
     if is_playtest: gold_mult *= 0.01 
-    if b_type == 'Gravity' and peg['type'] == 'gold': gold_mult *= 3.0
+    if b_type == 'Gravity' and peg['type'] == 'gold': gold_mult *= 5.0
     
     cash_mult = 2 if active_buffs.get('money_2x', 0) > 0 else 1
     pp_mult = 2 if active_buffs.get('pp_2x', 0) > 0 else 1
@@ -408,6 +476,8 @@ def grant_peg_reward(peg, gold_mult, is_direct_hit=True, b_type=None):
         spawn_particles(peg['x'], peg['y'], CYAN, count=30, speed=6.0)
     elif peg['type'] == 'boss':
         cash += int(500 * gold_mult * cash_mult); spawn_particles(peg['x'], peg['y'], MAGENTA, count=40, speed=8.0)
+    elif peg['type'] == 'mega_boss':
+        cash += int(2500 * gold_mult * cash_mult); spawn_particles(peg['x'], peg['y'], RED, count=100, speed=12.0)
     else:
         bv = 10 if peg['type'] == 'gold' else (5 if peg['type'] in ['bomb', 'rainbow'] else 0)
         if bv > 0: cash += int(bv * gold_mult * cash_mult)
@@ -429,7 +499,13 @@ def grant_peg_reward(peg, gold_mult, is_direct_hit=True, b_type=None):
 def roll_crate(crate_name):
     crate = CRATES[crate_name]; results = []
     for _ in range(crate['rolls']):
-        r = random.random(); rarity = 'Legendary' if r < crate['odds']['Legendary'] else ('Epic' if r < crate['odds']['Legendary']+crate['odds']['Epic'] else ('Rare' if r < crate['odds']['Legendary']+crate['odds']['Epic']+crate['odds']['Rare'] else 'Common'))
+        r = random.random()
+        if r < crate['odds']['Mythical']: rarity = 'Mythical'
+        elif r < crate['odds']['Mythical'] + crate['odds']['Legendary']: rarity = 'Legendary'
+        elif r < crate['odds']['Mythical'] + crate['odds']['Legendary'] + crate['odds']['Epic']: rarity = 'Epic'
+        elif r < crate['odds']['Mythical'] + crate['odds']['Legendary'] + crate['odds']['Epic'] + crate['odds']['Rare']: rarity = 'Rare'
+        else: rarity = 'Common'
+        
         chosen = random.choice([k for k,v in ABILITIES.items() if v['rarity'] == rarity])
         ability_inventory[chosen] += 1; results.append({"name": chosen, "rarity": rarity})
     return results
@@ -464,12 +540,14 @@ def draw_main_menu():
             screen.blit(font_small.render(f"Top Rev: {top_lv}/5", True, DARK_BLUE), (m_x + 680, m_y + 95)); btns['top'] = pygame.Rect(m_x + 790, m_y + 90, 60, 25); draw_btn(screen, btns['top'], CYAN if stat_points >= top_lv+1 else GRAY, f"{top_lv+1} SP", font_small, BLACK)
             screen.blit(font_small.render(f"Bot Rev: {bot_lv}/5", True, DARK_BLUE), (m_x + 680, m_y + 120)); btns['bot'] = pygame.Rect(m_x + 790, m_y + 115, 60, 25); draw_btn(screen, btns['bot'], GREEN if stat_points >= bot_lv+1 else GRAY, f"{bot_lv+1} SP", font_small, BLACK)
             
-        c_rects = {}; start_x = m_x + (menu_w - (6 * 145)) // 2 + 10; start_y = m_y + 240
-        for i, (b_name, b_data) in enumerate({k: v for k, v in BALL_TYPES.items() if not v.get('hidden')}.items()):
-            card = pygame.Rect(start_x + ((i % 6) * 145), start_y + ((i // 6) * 135), 135, 125); c_rects[b_name] = card
+        c_rects = {}; start_x = m_x + 20; start_y = m_y + 240
+        b_list = [k for k, v in BALL_TYPES.items() if not v.get('hidden')]
+        for i, b_name in enumerate(b_list):
+            b_data = BALL_TYPES[b_name]
+            card = pygame.Rect(start_x + ((i % 6) * 160), start_y + ((i // 6) * 135), 150, 125); c_rects[b_name] = card
             pygame.draw.rect(screen, TAN, card, border_radius=5); pygame.draw.rect(screen, GOLD if equipped_ball == b_name else BLACK, card, 3, border_radius=5)
-            if b_name == "Taco": pygame.draw.circle(screen, GOLD, (card.x+67, card.y+25), 15); pygame.draw.rect(screen, BROWN, (card.x+54, card.y+23, 26, 6)); pygame.draw.rect(screen, GREEN, (card.x+56, card.y+19, 22, 4))
-            else: pygame.draw.circle(screen, b_data['color'], (card.x + 67, card.y + 25), 15); pygame.draw.circle(screen, WHITE, (card.x + 62, card.y + 20), 4)
+            if b_name == "Taco": pygame.draw.circle(screen, GOLD, (card.x+75, card.y+25), 15); pygame.draw.rect(screen, BROWN, (card.x+62, card.y+23, 26, 6)); pygame.draw.rect(screen, GREEN, (card.x+64, card.y+19, 22, 4))
+            else: pygame.draw.circle(screen, b_data['color'], (card.x + 75, card.y + 25), 15); pygame.draw.circle(screen, WHITE, (card.x + 70, card.y + 20), 4)
             screen.blit(font_small.render(b_name, True, BLACK), (card.x + 10, card.y + 50))
             if ball_stats[b_name]['unlocked']: screen.blit(font_small.render("EQUIPPED" if equipped_ball == b_name else "EQUIP", True, GREEN), (card.x + 15, card.y + 100))
             else: screen.blit(font_small.render(f"${b_data['cost']//1000000}M" if b_data['cost'] >= 1000000 else f"${b_data['cost']}", True, RED), (card.x + 15, card.y + 100))
@@ -498,6 +576,7 @@ while running:
     if active_buffs.get('money_2x', 0) > 0: active_buffs['money_2x'] -= 1 / FPS
     if active_buffs.get('pp_2x', 0) > 0: active_buffs['pp_2x'] -= 1 / FPS
     if lb_time_remaining > 0: lb_time_remaining -= 1 / FPS
+    if bottom_wall_timer > 0: bottom_wall_timer -= 1
 
     if not is_playtest and len(pegs) == 0 and board_clear_timer == 0: create_random_board()
 
@@ -506,6 +585,13 @@ while running:
             if state not in ["LOGIN", "AUTO_LOGIN"]: save_game(sync=True)
             running = False
             
+        elif event.type == pygame.MOUSEWHEEL:
+            if state == "ABILITIES_MENU":
+                ability_scroll += event.y * 30
+                max_scroll = min(0, 560 - (math.ceil(len(ABILITIES) / 2) * 70 + 40))
+                if ability_scroll < max_scroll: ability_scroll = max_scroll
+                if ability_scroll > 0: ability_scroll = 0
+
         elif event.type == pygame.KEYDOWN:
             if state == "ADMIN_PANEL":
                 if admin_active_input == "user":
@@ -517,7 +603,11 @@ while running:
             elif state == "MAP_NAME_INPUT":
                 if event.key == pygame.K_BACKSPACE: map_input_name = map_input_name[:-1]
                 elif event.key == pygame.K_RETURN and map_input_name.strip():
-                    is_uploading = True; threading.Thread(target=upload_map_thread, args=({"author": current_user, "name": map_input_name.strip(), "unfair": editor_is_unfair, "pegs": editor_pegs, "bumpers": editor_bumpers},), daemon=True).start(); state = "MAP_EDITOR"
+                    is_uploading = True
+                    clean_pegs = [{'x': round(p['x'], 1), 'y': round(p['y'], 1), 'type': p['type']} for p in editor_pegs]
+                    clean_bumpers = [{'x': round(b['x'], 1), 'y': round(b['y'], 1), 'radius': round(b['radius'], 1)} for b in editor_bumpers]
+                    threading.Thread(target=upload_map_thread, args=({"author": current_user, "name": map_input_name.strip(), "unfair": editor_is_unfair, "pegs": clean_pegs, "bumpers": clean_bumpers},), daemon=True).start()
+                    state = "MAP_EDITOR"
                 elif event.key not in [pygame.K_RETURN, pygame.K_TAB, pygame.K_ESCAPE]: map_input_name += event.unicode
             elif state == "LOGIN" and not is_authenticating:
                 if active_input == "username":
@@ -633,6 +723,10 @@ while running:
                                     ability_inventory[a_name] -= 1
                                     for b in balls: b['revive_stack'].append('top')
                                     save_game()
+                                elif a_name == "Border":
+                                    ability_inventory[a_name] -= 1
+                                    bottom_wall_timer = FPS * 7
+                                    save_game()
                                 else: active_ability_mode = None if active_ability_mode == a_name else a_name
                             else: active_ability_mode = None
                             break
@@ -661,6 +755,18 @@ while running:
                             for _ in range(10): spawn_ball(equipped_ball, mx + random.uniform(-20,20), my + random.uniform(-20,20), random.uniform(-5,5), random.uniform(-5,5))
                         elif active_ability_mode == "Fire Cursor": fire_cursor_timer = FPS * 5
                         elif active_ability_mode == "Vacuum Cursor": vacuum_cursor_timer = FPS * 5
+                        elif active_ability_mode == "Time Slow": time_zones.append({'x': mx, 'y': my, 'radius': 150, 'life': FPS * 10})
+                        elif active_ability_mode == "Rewind": rewind_zones.append({'x': mx, 'y': my, 'radius': 150, 'life': FPS * 4})
+                        elif active_ability_mode == "Portal": portals.append({'x1': mx, 'y1': my, 'x2': random.randint(100, WIDTH-100), 'y2': random.randint(80, 200), 'life': FPS * 3})
+                        elif active_ability_mode == "Raining Tacos":
+                            taco_clouds.append({
+                                'boards_remaining': 5, 
+                                'timer': 0,
+                                'bg': [{'x': random.randint(0, WIDTH), 'y': random.randint(0, HEIGHT), 'rot_speed': random.uniform(-8, 8), 'angle': random.randint(0,360), 'scale': random.uniform(1.0, 4.0)} for _ in range(15)]
+                            })
+                            try:
+                                if os.path.exists("raining_tacos.mp3"): pygame.mixer.music.load("raining_tacos.mp3"); pygame.mixer.music.play()
+                            except: pass
                         active_ability_mode = None; save_game(); clicked_ui = True
                     else: active_ability_mode = None 
                 
@@ -710,15 +816,16 @@ while running:
                 elif pygame.Rect(WIDTH//2 + 50, HEIGHT//2 + 50, 100, 50).collidepoint(mx, my): state = "MENU"
 
             elif state == "ABILITIES_MENU":
-                menu_w, menu_h = 900, 700; m_x, m_y = WIDTH//2 - menu_w//2, HEIGHT//2 - menu_h//2
-                for i, (a_name, a_data) in enumerate(ABILITIES.items()):
-                    card = pygame.Rect(m_x + 30 + ((i % 2) * 430), m_y + 100 + ((i // 2) * 90), 410, 80)
-                    if card.collidepoint(mx, my):
-                        if a_name in equipped_abilities: equipped_abilities.remove(a_name); active_ability_mode = None if active_ability_mode == a_name else active_ability_mode
-                        elif len(equipped_abilities) < 5: equipped_abilities.append(a_name)
+                menu_w, menu_h = 950, 750; m_x, m_y = WIDTH//2 - menu_w//2, HEIGHT//2 - menu_h//2
                 if pygame.Rect(m_x + menu_w - 130, m_y + 20, 100, 40).collidepoint(mx, my): state = "MENU"; save_game()
-                elif pygame.Rect(m_x + 30, m_y + menu_h - 60, 220, 40).collidepoint(mx, my): state = "CRATES_MENU"
-                elif pygame.Rect(m_x + menu_w//2 - 100, m_y + menu_h - 60, 200, 40).collidepoint(mx, my): equipped_abilities.clear(); active_ability_mode = None
+                elif pygame.Rect(m_x + 30, m_y + menu_h - 70, 220, 50).collidepoint(mx, my): state = "CRATES_MENU"
+                elif pygame.Rect(m_x + menu_w//2 - 100, m_y + menu_h - 70, 200, 50).collidepoint(mx, my): equipped_abilities.clear(); active_ability_mode = None
+                elif m_y + 90 <= my <= m_y + menu_h - 100:
+                    for i, (a_name, a_data) in enumerate(ABILITIES.items()):
+                        card = pygame.Rect(m_x + 30 + ((i % 2) * 440), m_y + 100 + ((i // 2) * 70) + ability_scroll, 420, 65)
+                        if card.collidepoint(mx, my):
+                            if a_name in equipped_abilities: equipped_abilities.remove(a_name); active_ability_mode = None if active_ability_mode == a_name else active_ability_mode
+                            elif len(equipped_abilities) < 5: equipped_abilities.append(a_name)
 
             elif state == "CRATES_MENU":
                 m_x, m_y = WIDTH//2 - 500, HEIGHT//2 - 350
@@ -805,8 +912,6 @@ while running:
     elif state == "LEADERBOARD":
         screen.fill(BLACK)
         screen.blit(font_huge.render("GLOBAL LEADERBOARD", True, GOLD), (WIDTH//2 - 350, 40))
-        
-        # --- NEW UI: REWARDS TIMER ---
         pygame.draw.rect(screen, DARK_BLUE, (WIDTH//2 - 250, 95, 500, 40), border_radius=5)
         pygame.draw.rect(screen, CYAN, (WIDTH//2 - 250, 95, 500, 40), 2, border_radius=5)
         screen.blit(font_med.render(f"Next Rewards In: {format_time(lb_time_remaining)}", True, WHITE), (WIDTH//2 - 160, 105))
@@ -909,12 +1014,23 @@ while running:
 
     elif state == "PLAY":
         screen.fill(BLACK)
+        
+        if taco_clouds:
+            for tc in taco_clouds:
+                for bt in tc['bg']:
+                    bt['angle'] += bt['rot_speed']
+                    draw_taco(screen, bt['x'], bt['y'], bt['scale'], bt['angle'])
+        
         if board_clear_timer == 0:
             for b_name, b_stat in ball_stats.items():
                 if b_stat['unlocked'] and b_stat['auto_drop_lvl'] > 0 and b_stat.get('auto_enabled', True):
                     b_stat['auto_timer'] += 1
                     if b_stat['auto_timer'] >= get_auto_drop_rate(b_stat['auto_drop_lvl']) * FPS:
-                        b_stat['auto_timer'] = 0; spawn_ball(b_name, random.choice(active_pegs)['x'] + random.uniform(-15, 15) if active_pegs and random.random() < 0.8 else random.randint(20, WIDTH-20), 20.0, random.uniform(-1, 1), 0.0)
+                        b_stat['auto_timer'] = 0
+                        start_x = random.choice(active_pegs)['x'] + random.uniform(-15, 15) if active_pegs and random.random() < 0.8 else random.randint(20, WIDTH-20)
+                        start_vx = random.uniform(-5, 5) if b_name == 'Gravity' else random.uniform(-1, 1)
+                        start_vy = random.uniform(2, 6) if b_name == 'Gravity' else 0.0
+                        spawn_ball(b_name, start_x, 20.0, start_vx, start_vy)
         
         if fire_cursor_timer > 0:
             fire_cursor_timer -= 1; pygame.draw.circle(screen, ORANGE, (mx, my), 75, 2)
@@ -928,13 +1044,42 @@ while running:
                 dist = max(1, math.hypot(dx, dy))
                 if dist < 200: b['vx'] += (dx/dist) * 1.5; b['vy'] += (dy/dist) * 1.5 - b['grav']
 
+        # Abilty Zones Processing
+        for tc in taco_clouds[:]:
+            tc['timer'] -= 1
+            if tc['timer'] <= 0:
+                tc['timer'] = random.randint(FPS * 2, FPS * 4)
+                for _ in range(random.randint(2, 4)): 
+                    spawn_ball('Big_Taco', random.randint(100, WIDTH-100), -40, random.uniform(-3, 3), random.uniform(2, 6))
+
+        for tz in time_zones[:]:
+            tz['life'] -= 1; pygame.draw.circle(screen, (0, 0, 150), (int(tz['x']), int(tz['y'])), tz['radius'], 2)
+            if tz['life'] <= 0: time_zones.remove(tz)
+            
+        for rz in rewind_zones[:]:
+            rz['life'] -= 1; pygame.draw.circle(screen, (100, 100, 100), (int(rz['x']), int(rz['y'])), rz['radius'], 2)
+            for b in balls:
+                if math.hypot(b['x'] - rz['x'], b['y'] - rz['y']) < rz['radius']: b['rewinding'] = True
+            if rz['life'] <= 0: rewind_zones.remove(rz)
+
+        for pt in portals[:]:
+            pt['life'] -= 1
+            pygame.draw.circle(screen, PURPLE, (int(pt['x1']), int(pt['y1'])), 30, 4); pygame.draw.circle(screen, ORANGE, (int(pt['x2']), int(pt['y2'])), 30, 4)
+            for b in balls:
+                if b.get('portal_cd', 0) > 0: b['portal_cd'] -= 1
+                if math.hypot(b['x'] - pt['x1'], b['y'] - pt['y1']) < 30 and b.get('portal_cd', 0) <= 0:
+                    b['x'], b['y'] = pt['x2'], pt['y2']
+                    b['portal_cd'] = FPS * 1
+            if pt['life'] <= 0: portals.remove(pt)
+
+        if bottom_wall_timer > 0: pygame.draw.line(screen, TAN, (0, HEIGHT - 80), (WIDTH, HEIGHT - 80), 8)
+
         for d in drones[:]:
             if d['captured'] < 10 and balls:
                 closest_b = None; min_dist = float('inf')
                 for b in balls:
                     dist = math.hypot(b['x'] - d['x'], b['y'] - d['y'])
                     if dist < min_dist: min_dist = dist; closest_b = b
-                
                 if closest_b:
                     dx, dy = closest_b['x'] - d['x'], closest_b['y'] - d['y']
                     if min_dist > 0: d['x'] += (dx/min_dist) * 2.5; d['y'] += (dy/min_dist) * 2.5
@@ -943,7 +1088,6 @@ while running:
                         d['captured'] += 1
                         try: balls.remove(closest_b)
                         except: pass
-                        
             pygame.draw.rect(screen, WHITE, (int(d['x'])-20, int(d['y'])-10, 40, 20)); pygame.draw.circle(screen, RED, (int(d['x']), int(d['y'])+10), 5)
             screen.blit(font_tiny.render(str(d['captured']), True, BLACK), (int(d['x'])-5, int(d['y'])-7))
 
@@ -967,6 +1111,31 @@ while running:
             if lz['life'] <= 0: lightnings.remove(lz)
                         
         for b in balls[:]:
+            if b.get('rewinding'):
+                if 'history' in b and len(b['history']) > 0:
+                    state_vec = b['history'].pop()
+                    b['x'], b['y'], b['vx'], b['vy'] = state_vec
+                else: b['rewinding'] = False
+                continue 
+            else:
+                if 'history' not in b: b['history'] = []
+                b['history'].append((b['x'], b['y'], b['vx'], b['vy']))
+                if len(b['history']) > 240: b['history'].pop(0)
+
+            if b['type'] == 'Sucking':
+                b['suck_timer'] = b.get('suck_timer', 0) - 1
+                if b['suck_timer'] <= 0:
+                    b['suck_timer'] = int(FPS * 2.5)
+                    suck_count = random.randint(3, 7)
+                    active_p = [p for p in pegs if p['active']]
+                    if active_p:
+                        active_p.sort(key=lambda p: math.hypot(b['x']-p['x'], b['y']-p['y']))
+                        for p in active_p[:suck_count]:
+                            p['active'] = False
+                            lightnings.append({'x1': b['x'], 'y1': b['y'], 'x2': p['x'], 'y2': p['y'], 'life': 15})
+                            mult = b['gold_mult'] * 1.5 if p['type'] == 'gold' else b['gold_mult']
+                            grant_peg_reward(p, mult, False, 'Sucking')
+                            
             if b['type'] == 'Magic':
                 if b.get('lightning_strikes', 0) > 0:
                     b['lightning_timer'] -= 1
@@ -990,15 +1159,17 @@ while running:
                     b['pulse_timer'] = b.get('pulse_timer', 0) - 1
                     if b['pulse_timer'] <= 0:
                         b['pulse_timer'] = FPS * 3
-                        # Spawn the expanding white pulse ring
                         pulse_rings.append({'x': b['x'], 'y': b['y'], 'radius': b_rad, 'thickness': 4, 'alpha': 255})
                         for ob in balls:
-                            # Don't infect other Gravity balls
-                            if ob != b and ob['type'] != 'Gravity' and math.hypot(b['x']-ob['x'], b['y']-ob['y']) < 150:
-                                ob['anti_grav_timer'] = max(ob.get('anti_grav_timer', 0), FPS * 5)
+                            if ob != b and ob['type'] != 'Gravity' and math.hypot(b['x']-ob['x'], b['y']-ob['y']) < 150: ob['anti_grav_timer'] = max(ob.get('anti_grav_timer', 0), FPS * 5)
             else:
                 b['vy'] += b['grav'] 
                 
+            for tz in time_zones:
+                if math.hypot(b['x'] - tz['x'], b['y'] - tz['y']) < tz['radius']:
+                    b['vx'] *= 0.85
+                    b['vy'] -= b['grav'] * 0.90 
+
             b['x'] += b['vx']; b['y'] += b['vy']
             speed = math.hypot(b['vx'], b['vy'])
             if speed > 18.0: b['vx'] = (b['vx'] / speed) * 18.0; b['vy'] = (b['vy'] / speed) * 18.0
@@ -1011,11 +1182,30 @@ while running:
                 if b['y'] - b_rad < 80: b['y'] = 80 + b_rad; b['vy'] *= -b['bounce']; bounce_sound.play()
                 elif b['y'] + b_rad > HEIGHT: b['y'] = HEIGHT - b_rad; b['vy'] *= -b['bounce']; bounce_sound.play()
             else:
-                if b['y'] - b_rad > HEIGHT: 
-                    if 'top' in b['revive_stack']: b['revive_stack'].remove('top'); b['y'] = 80; b['vy'] = 0
-                    elif 'bounce' in b['revive_stack']: b['revive_stack'].remove('bounce'); b['vy'] = -15; b['y'] = HEIGHT - b_rad
-                    else: balls.remove(b)
-                    continue 
+                bottom_thresh = HEIGHT - (80 if bottom_wall_timer > 0 else 0)
+                if b['y'] + b_rad > bottom_thresh: 
+                    if bottom_wall_timer > 0 and b['y'] < HEIGHT - 40:
+                        b['y'] = bottom_thresh - b_rad; b['vy'] *= -b['bounce']; bounce_sound.play()
+                        if b['type'] == 'Big_Taco':
+                            spawn_particles(b['x'], b['y'], ORANGE, 50, 10.0)
+                            for _ in range(random.randint(8, 12)): spawn_ball('Buffed_Taco', b['x'], b['y']-20, random.uniform(-15, 15), random.uniform(-20, -10))
+                            balls.remove(b)
+                            continue
+                    else:
+                        if b['type'] == 'Big_Taco':
+                            spawn_particles(b['x'], b['y'], ORANGE, 50, 10.0)
+                            for _ in range(random.randint(8, 12)): spawn_ball('Buffed_Taco', b['x'], HEIGHT-40, random.uniform(-15, 15), random.uniform(-20, -10))
+                            balls.remove(b)
+                            continue
+                        elif b['type'] == 'Buffed_Taco':
+                            b['y'] = bottom_thresh - b_rad; b['vy'] *= -b['bounce']; bounce_sound.play()
+                            b['hits_taken'] += 1
+                            if b['hits_taken'] >= b.get('max_hits', 20): balls.remove(b)
+                            continue
+                        elif 'top' in b['revive_stack']: b['revive_stack'].remove('top'); b['y'] = 80; b['vy'] = 0
+                        elif 'bounce' in b['revive_stack']: b['revive_stack'].remove('bounce'); b['vy'] = -15; b['y'] = HEIGHT - b_rad
+                        else: balls.remove(b)
+                        continue 
             
             for bmp in bumpers:
                 dx, dy = b['x'] - bmp['x'], b['y'] - bmp['y']; dist = math.hypot(dx, dy)
@@ -1025,27 +1215,45 @@ while running:
                     dot = b['vx'] * nx + b['vy'] * ny; b['vx'] = (b['vx'] - 2 * dot * nx) * b['bounce']; b['vy'] = (b['vy'] - 2 * dot * ny) * b['bounce']
 
             for peg in pegs:
-                if peg['active'] and math.hypot(b['x'] - peg['x'], b['y'] - peg['y']) < b_rad + (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS):
-                    if b['type'] == 'Taco':
+                p_rad = 60 if peg['type'] == 'mega_boss' else (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS)
+                if peg['active'] and math.hypot(b['x'] - peg['x'], b['y'] - peg['y']) < b_rad + p_rad:
+                    
+                    if b['type'] == 'Big_Taco':
+                        spawn_particles(b['x'], b['y'], ORANGE, 50, 10.0)
+                        for _ in range(random.randint(8, 12)): spawn_ball('Buffed_Taco', b['x'], b['y'], random.uniform(-15, 15), random.uniform(-20, -10))
+                        try: balls.remove(b)
+                        except: pass
+                        break
+
+                    if b['type'] in ['Taco', 'Buffed_Taco']:
                         bite_sound.play(); b['hits_taken'] += 1
-                        if peg['type'] == 'boss':
+                        if peg['type'] in ['boss', 'mega_boss']:
                             peg['hp'] = peg.get('hp', 5) - 1
-                            if peg['hp'] <= 0: peg['active'] = False; grant_peg_reward(peg, b['gold_mult'], True, b['type'])
+                            if peg['hp'] <= 0: 
+                                peg['active'] = False; grant_peg_reward(peg, b['gold_mult'], True, b['type'])
+                                if peg['type'] == 'mega_boss': 
+                                    for op in pegs: op['active'] = False
                         else: peg['active'] = False; grant_peg_reward(peg, b['gold_mult'], True, b['type'])
                         
                         nearby = sorted([p for p in pegs if p['active']], key=lambda p: math.hypot(peg['x']-p['x'], peg['y']-p['y']))[:2]
                         for np in nearby:
                             if math.hypot(peg['x']-np['x'], peg['y']-np['y']) < 80:
-                                if np['type'] == 'boss':
+                                if np['type'] in ['boss', 'mega_boss']:
                                     np['hp'] = np.get('hp', 5) - 1
-                                    if np['hp'] <= 0: np['active'] = False; grant_peg_reward(np, b['gold_mult'], False, b['type'])
+                                    if np['hp'] <= 0: 
+                                        np['active'] = False; grant_peg_reward(np, b['gold_mult'], False, b['type'])
+                                        if np['type'] == 'mega_boss': 
+                                            for op in pegs: op['active'] = False
                                 else: np['active'] = False; grant_peg_reward(np, b['gold_mult'], False, b['type'])
                                 
                         if b['hits_taken'] >= b.get('max_hits', 3): balls.remove(b); break
                     else:
-                        if peg['type'] == 'boss':
+                        if peg['type'] in ['boss', 'mega_boss']:
                             peg['hp'] = peg.get('hp', 5) - 1
-                            if peg['hp'] <= 0: peg['active'] = False; grant_peg_reward(peg, b['gold_mult'], True, b['type'])
+                            if peg['hp'] <= 0: 
+                                peg['active'] = False; grant_peg_reward(peg, b['gold_mult'], True, b['type'])
+                                if peg['type'] == 'mega_boss': 
+                                    for op in pegs: op['active'] = False
                         else: peg['active'] = False; grant_peg_reward(peg, b['gold_mult'], True, b['type'])
                         
                         if b['type'] == 'Bomb':
@@ -1057,7 +1265,7 @@ while running:
                                 if math.hypot(peg['x']-np['x'], peg['y']-np['y']) < 60 and not np.get('on_fire'): np['on_fire'] = True; np['fire_timer'] = FPS * 2
                                 
                     bounce_sound.play(); nx, ny = (b['x'] - peg['x']) / max(math.hypot(b['x'] - peg['x'], b['y'] - peg['y']),0.1), (b['y'] - peg['y']) / max(math.hypot(b['x'] - peg['x'], b['y'] - peg['y']),0.1)
-                    b['x'] += nx * ((b_rad + (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS)) - math.hypot(b['x'] - peg['x'], b['y'] - peg['y'])); b['y'] += ny * ((b_rad + (PEG_RADIUS * 1.5 if peg['type'] == 'boss' else PEG_RADIUS)) - math.hypot(b['x'] - peg['x'], b['y'] - peg['y']))
+                    b['x'] += nx * ((b_rad + p_rad) - math.hypot(b['x'] - peg['x'], b['y'] - peg['y'])); b['y'] += ny * ((b_rad + p_rad) - math.hypot(b['x'] - peg['x'], b['y'] - peg['y']))
                     dot = b['vx'] * nx + b['vy'] * ny; b['vx'] = (b['vx'] - 2 * dot * nx) * b['bounce']; b['vy'] = (b['vy'] - 2 * dot * ny) * b['bounce']
                     break 
 
@@ -1065,10 +1273,8 @@ while running:
             p['x'] += p['vx']; p['y'] += p['vy']; p['life'] -= 1; p['radius'] = max(0, p['radius'] - 0.1)
             if p['life'] <= 0: particles.remove(p)
 
-        # Draw expanding pulse rings
         for r in pulse_rings[:]:
-            r['radius'] += 4
-            r['alpha'] -= 7
+            r['radius'] += 4; r['alpha'] -= 7
             if r['alpha'] <= 0: pulse_rings.remove(r)
             else:
                 ring_surf = pygame.Surface((int(r['radius']*2 + 10), int(r['radius']*2 + 10)), pygame.SRCALPHA)
@@ -1077,33 +1283,53 @@ while running:
 
         if all(not p['active'] for p in pegs) and len(pegs) > 0 and board_clear_timer == 0:
             board_clear_timer = FPS * 2; cash += int(100 * (0.01 if is_playtest else 1) * (2 if active_buffs.get('money_2x',0)>0 else 1)); boards_cleared += 1
+            for tc in taco_clouds[:]:
+                tc['boards_remaining'] -= 1
+                if tc['boards_remaining'] <= 0:
+                    taco_clouds.remove(tc)
             for _ in range(10): spawn_particles(random.randint(200, WIDTH-200), random.randint(200, HEIGHT-200), random.choice([GOLD, CYAN, RED, GREEN]), count=30, speed=8.0)
         
         for bmp in bumpers: pygame.draw.polygon(screen, GRAY, [(bmp['x'], bmp['y'] - bmp['radius']), (bmp['x'] + bmp['radius'], bmp['y']), (bmp['x'], bmp['y'] + bmp['radius']), (bmp['x'] - bmp['radius'], bmp['y'])]); pygame.draw.polygon(screen, WHITE, [(bmp['x'], bmp['y'] - bmp['radius']), (bmp['x'] + bmp['radius'], bmp['y']), (bmp['x'], bmp['y'] + bmp['radius']), (bmp['x'] - bmp['radius'], bmp['y'])], 2)
+        
         for peg in pegs:
             if peg['active']: 
+                if peg['type'] == 'mega_boss':
+                    peg['spawn_timer'] -= 1
+                    if peg['spawn_timer'] <= 0:
+                        peg['spawn_timer'] = FPS * 4
+                        for angle in range(0, 360, 45):
+                            px = peg['x'] + math.cos(math.radians(angle)) * random.randint(120, 200)
+                            py = peg['y'] + math.sin(math.radians(angle)) * random.randint(120, 200)
+                            pegs.append({'x': px, 'y': py, 'type': 'green', 'active': True, 'on_fire': False, 'fire_timer': 0})
+                
                 if peg.get('on_fire'):
                     peg['fire_timer'] -= 1
                     if random.random() < 0.1: spawn_particles(peg['x'], peg['y'], ORANGE, count=1, speed=1.0)
                     if peg['fire_timer'] <= 0:
-                        if peg['type'] == 'boss':
+                        if peg['type'] in ['boss', 'mega_boss']:
                             peg['hp'] = peg.get('hp', 5) - 1
-                            if peg['hp'] <= 0: peg['active'] = False; grant_peg_reward(peg, 1.0, False, 'Fire')
+                            if peg['hp'] <= 0: 
+                                peg['active'] = False; grant_peg_reward(peg, 1.0, False, 'Fire')
+                                if peg['type'] == 'mega_boss':
+                                    for op in pegs: op['active'] = False
                             else: peg['on_fire'] = False
                         else: peg['active'] = False; grant_peg_reward(peg, 1.0, False, 'Fire')
                 draw_peg_visual(screen, peg['x'], peg['y'], peg['type'], peg.get('hp', 0), peg.get('on_fire', False))
+                
         for p in particles: pygame.draw.circle(screen, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
         
         for b in balls: 
             bx, by = int(b['x']), int(b['y'])
             b_rad = b.get('radius', BALL_RADIUS)
             
-            if b['type'] == 'Taco':
+            if b['type'] in ['Taco', 'Buffed_Taco']:
                 pygame.draw.circle(screen, GOLD, (bx, by), b_rad); pygame.draw.rect(screen, BROWN, (bx - b_rad + 2, by - 2, b_rad * 2 - 4, 6)); pygame.draw.rect(screen, GREEN, (bx - b_rad + 4, by - 6, b_rad * 2 - 8, 4))
                 health = 1.0 - (b.get('hits_taken', 0) / b.get('max_hits', 3))
                 if health <= 0.75: pygame.draw.circle(screen, BLACK, (bx + b_rad, by - 5), 8)
                 if health <= 0.50: pygame.draw.circle(screen, BLACK, (bx - b_rad, by + 5), 8)
                 if health <= 0.25: pygame.draw.circle(screen, BLACK, (bx, by - b_rad), 8)
+            elif b['type'] == 'Big_Taco':
+                pygame.draw.circle(screen, GOLD, (bx, by), b_rad); pygame.draw.rect(screen, BROWN, (bx - b_rad + 4, by - 5, b_rad * 2 - 8, 12)); pygame.draw.rect(screen, GREEN, (bx - b_rad + 8, by - 12, b_rad * 2 - 16, 8))
             else:
                 pygame.draw.circle(screen, b['color'], (bx, by), b_rad); pygame.draw.circle(screen, WHITE, (int(bx - b_rad*0.3), int(by - b_rad*0.3)), max(1, int(b_rad*0.2)))
 
@@ -1123,6 +1349,7 @@ while running:
 
         screen.blit(font_large.render(f"Cash: ${cash}", True, WHITE), (20, 10)); screen.blit(font_med.render(f"PP: {prestige_points}", True, BRONZE), (20, 45)); screen.blit(font_med.render(f"SP: {stat_points}", True, CYAN), (20, 75))
         screen.blit(font_med.render(f"{equipped_ball} Ammo: {max(0, ball_stats[equipped_ball]['max_balls'] - len([b for b in balls if b['is_manual'] and b['type'] == equipped_ball]))} / {ball_stats[equipped_ball]['max_balls']}", True, WHITE), (20, 105))
+        screen.blit(font_med.render(f"Level: {boards_cleared + 1}", True, PURPLE), (WIDTH//2 - 40, 10))
         
         buff_y = 140
         if active_buffs.get('money_2x', 0) > 0: screen.blit(font_med.render(f"2X CASH: {format_time(active_buffs['money_2x'])}", True, GOLD), (20, buff_y)); buff_y += 30
@@ -1139,7 +1366,7 @@ while running:
             if board_clear_timer == 0:
                 if is_playtest: pegs = copy.deepcopy(backup_pegs); bumpers = copy.deepcopy(backup_bumpers)
                 else: create_random_board()
-                balls.clear(); particles.clear(); pulse_rings.clear()
+                balls.clear(); particles.clear(); pulse_rings.clear(); time_zones.clear(); rewind_zones.clear(); portals.clear()
 
     elif state == "MENU":
         draw_main_menu()
@@ -1159,17 +1386,23 @@ while running:
             draw_btn(screen, pygame.Rect(WIDTH//2 - 75, HEIGHT//2 + 50, 150, 40), GREEN, "AWESOME", font_med, BLACK)
 
     elif state == "ABILITIES_MENU":
-        screen.fill(BLACK); menu_w, menu_h = 900, 700; m_x, m_y = WIDTH//2 - menu_w//2, HEIGHT//2 - menu_h//2
+        screen.fill(BLACK); menu_w, menu_h = 950, 750; m_x, m_y = WIDTH//2 - menu_w//2, HEIGHT//2 - menu_h//2
         pygame.draw.rect(screen, DARK_GRAY, (m_x, m_y, menu_w, menu_h), border_radius=10); pygame.draw.rect(screen, LIGHT_BLUE, (m_x, m_y, menu_w, menu_h), 3, border_radius=10)
         screen.blit(font_large.render("--- ACTIVE ABILITIES ---", True, LIGHT_BLUE), (m_x + menu_w//2 - 200, m_y + 20)); screen.blit(font_med.render(f"Equipped: {len(equipped_abilities)} / 5", True, WHITE), (m_x + menu_w//2 - 90, m_y + 60))
+        
+        screen.set_clip(pygame.Rect(m_x, m_y + 90, menu_w, menu_h - 190))
+        
         for i, (a_name, a_data) in enumerate(ABILITIES.items()):
-            card = pygame.Rect(m_x + 30 + ((i % 2) * 430), m_y + 100 + ((i // 2) * 90), 410, 80)
+            card = pygame.Rect(m_x + 30 + ((i % 2) * 440), m_y + 100 + ((i // 2) * 70) + ability_scroll, 420, 65)
             pygame.draw.rect(screen, BLACK, card, border_radius=5); pygame.draw.rect(screen, RARITY_COLORS[a_data['rarity']], card, 2, border_radius=5)
-            if a_name in equipped_abilities: pygame.draw.rect(screen, GREEN, card, 4, border_radius=5); screen.blit(font_med.render("EQ", True, GREEN), (card.x + card.width - 45, card.y + 25))
-            screen.blit(font_med.render(a_name, True, a_data['color']), (card.x + 15, card.y + 10)); screen.blit(font_small.render(f"Tokens: {ability_inventory.get(a_name, 0)}", True, WHITE if ability_inventory.get(a_name, 0) > 0 else RED), (card.x + 15, card.y + 45))
-            desc_w = a_data['desc'].split(); screen.blit(font_tiny.render(" ".join(desc_w[:5]), True, GRAY), (card.x + 175, card.y + 20)); screen.blit(font_tiny.render(" ".join(desc_w[5:]), True, GRAY), (card.x + 175, card.y + 40))
-        draw_btn(screen, pygame.Rect(m_x + 30, m_y + menu_h - 60, 220, 40), GOLD, "Buy Crates", font_med, BLACK)
-        draw_btn(screen, pygame.Rect(m_x + menu_w//2 - 100, m_y + menu_h - 60, 200, 40), RED, "Unequip All", font_med, WHITE)
+            if a_name in equipped_abilities: pygame.draw.rect(screen, GREEN, card, 4, border_radius=5); screen.blit(font_med.render("EQ", True, GREEN), (card.x + card.width - 45, card.y + 15))
+            screen.blit(font_med.render(a_name, True, a_data['color']), (card.x + 15, card.y + 5)); screen.blit(font_small.render(f"Tokens: {ability_inventory.get(a_name, 0)}", True, WHITE if ability_inventory.get(a_name, 0) > 0 else RED), (card.x + 15, card.y + 35))
+            desc_w = a_data['desc'].split(); screen.blit(font_tiny.render(" ".join(desc_w[:5]), True, GRAY), (card.x + 185, card.y + 15)); screen.blit(font_tiny.render(" ".join(desc_w[5:]), True, GRAY), (card.x + 185, card.y + 35))
+            
+        screen.set_clip(None)
+
+        draw_btn(screen, pygame.Rect(m_x + 30, m_y + menu_h - 70, 220, 50), GOLD, "Buy Crates", font_med, BLACK)
+        draw_btn(screen, pygame.Rect(m_x + menu_w//2 - 100, m_y + menu_h - 70, 200, 50), RED, "Unequip All", font_med, WHITE)
         draw_btn(screen, pygame.Rect(m_x + menu_w - 130, m_y + 20, 100, 40), RED, "Back", font_med, WHITE)
 
     elif state == "CRATES_MENU":
@@ -1177,12 +1410,13 @@ while running:
         pygame.draw.rect(screen, DARK_BLUE, (m_x, m_y, menu_w, menu_h), border_radius=10); pygame.draw.rect(screen, GOLD, (m_x, m_y, menu_w, menu_h), 3, border_radius=10)
         screen.blit(font_huge.render("ABILITY CRATES", True, GOLD), (m_x + menu_w//2 - 250, m_y + 30)); screen.blit(font_med.render(f"Current Cash: ${cash}", True, WHITE), (m_x + menu_w//2 - 120, m_y + 100))
         for i, (c_name, c_data) in enumerate(CRATES.items()):
-            card = pygame.Rect(m_x + 73 + i*293, m_y + 170, 260, 350); pygame.draw.rect(screen, BLACK, card, border_radius=10); pygame.draw.rect(screen, c_data['color'], card, 4, border_radius=10)
+            card = pygame.Rect(m_x + 73 + i*293, m_y + 170, 260, 380); pygame.draw.rect(screen, BLACK, card, border_radius=10); pygame.draw.rect(screen, c_data['color'], card, 4, border_radius=10)
             screen.blit(font_large.render(c_name.split()[0], True, c_data['color']), (card.x + 50, card.y + 20)); screen.blit(font_large.render(c_name.split()[1], True, c_data['color']), (card.x + 70, card.y + 60))
             screen.blit(font_med.render(f"Cost: ${c_data['cost']}", True, GOLD), (card.x + 40, card.y + 120)); screen.blit(font_med.render(f"Rolls: {c_data['rolls']}", True, WHITE), (card.x + 85, card.y + 160))
-            y_off = 240
-            for rarity in ['Common', 'Rare', 'Epic', 'Legendary']: screen.blit(font_small.render(f"{rarity}: {int(c_data['odds'][rarity]*100)}%", True, RARITY_COLORS[rarity]), (card.x + 20, card.y + y_off)); y_off += 25
-            draw_btn(screen, pygame.Rect(card.x + 30, card.y + 360, 200, 40), GREEN if cash >= c_data['cost'] else GRAY, "BUY CRATE", font_med, BLACK)
+            y_off = 210
+            for rarity in ['Common', 'Rare', 'Epic', 'Legendary', 'Mythical']: 
+                if c_data['odds'][rarity] > 0: screen.blit(font_small.render(f"{rarity}: {c_data['odds'][rarity]*100:.1f}%", True, RARITY_COLORS[rarity]), (card.x + 20, card.y + y_off)); y_off += 25
+            draw_btn(screen, pygame.Rect(card.x + 30, card.y + 320, 200, 40), GREEN if cash >= c_data['cost'] else GRAY, "BUY CRATE", font_med, BLACK)
         draw_btn(screen, pygame.Rect(m_x + menu_w//2 - 75, m_y + menu_h - 70, 150, 40), RED, "Back", font_med, WHITE)
 
     elif state == "CONFIRM_DELETE":
